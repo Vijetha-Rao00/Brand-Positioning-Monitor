@@ -42,7 +42,7 @@ def score_brand(client, brand_name, text):
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-3.5-flash',
                 contents=[system_prompt + "\n\nBRAND TEXT:\n" + text]
             )
 

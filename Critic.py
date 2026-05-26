@@ -51,7 +51,7 @@ def critique_brand(client, brand_name, text, a3_x, a3_y, a3_x_reason, a3_y_reaso
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model='gemini-3.1-flash-lite',
+                model='gemini-2.0-flash',
                 contents=[system_prompt]
             )
 

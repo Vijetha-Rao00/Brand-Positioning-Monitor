@@ -39,7 +39,7 @@ def clean_and_verify_text(client, brand, raw_text):
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
-                model='gemini-3.0-flash',
+                model='gemini-3.5-flash',
                 contents=[system_prompt + "\n\nRAW TEXT:\n" + raw_text]
             )
             return response.text.strip()

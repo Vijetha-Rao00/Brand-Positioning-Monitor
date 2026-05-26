@@ -1,62 +1,62 @@
 {
     "Chanel": {
         "x_score": 0.8,
-        "x_reasoning": "The text relies entirely on objective third-person authority and monument-like vocabulary to explicitly assert the brand's power and established legacy.",
-        "y_score": 1.0,
-        "y_reasoning": "The narrative focuses on heritage, global icons, and the brand's 'powerful influence on shared cultural narratives,' rather than private, intimate memories."
+        "x_reasoning": "The text establishes absolute dominance through authoritative superlatives, institutional markers, and an imperative command to experience the brand's prestige.",
+        "y_score": 0.5,
+        "y_reasoning": "It anchors itself entirely in collective myth, relying on grand archetypes of femininity, shared global heritage, and the canonization of icons."
     },
     "Hermes": {
-        "x_score": 0.8,
-        "x_reasoning": "The copy relies heavily on third-person authority, institutional markers, and superlatives to project absolute brand dominance.",
-        "y_score": 1.0,
-        "y_reasoning": "The text explicitly anchors itself in a shared cultural narrative of French heritage and collective excellence rather than private, intimate memory."
+        "x_score": 2.0,
+        "x_reasoning": "The copy speaks with authoritative, monumental third-person declarations centered on power and strength rather than personal vulnerability.",
+        "y_score": 1.2,
+        "y_reasoning": "It relies entirely on universal cosmological archetypes, alchemy, and the collective origins of humanity rather than private, idiosyncratic memories."
     },
     "YSL": {
-        "x_score": 2.8,
-        "x_reasoning": "The copy relies heavily on authoritative third-person positioning and establishment markers of industry leadership, with only a minor shift to direct address at the end.",
-        "y_score": 2.2,
-        "y_reasoning": "The brand positions itself through collective cultural milestones, heritage, and shared historical narratives rather than private, hyper-specific personal memories."
+        "x_score": 1.5,
+        "x_reasoning": "The text relies heavily on imperative verbs and monumental, authoritative language to project a posture of absolute dominance.",
+        "y_score": 2.0,
+        "y_reasoning": "It invokes broad cultural archetypes of freedom and rebellion rather than private, intimate memories or diary-like details."
     },
     "Maison Margiela": {
-        "x_score": 3.5,
-        "x_reasoning": "The text employs authoritative third-person narration to describe the brand's design philosophy, eschewing direct address or personal vulnerability.",
-        "y_score": 6.8,
-        "y_reasoning": "The brand explicitly prioritizes personal nostalgia, intimate emotions, and cozy individual experiences over shared cultural archetypes or grand mythologies."
+        "x_score": 6.2,
+        "x_reasoning": "The copy uses gentle imperatives to guide the reader while relying heavily on direct 'you' address to build an intimate, confidant-like connection.",
+        "y_score": 8.5,
+        "y_reasoning": "The text focuses entirely on highly specific nostalgic moments, framing the fragrance as a vessel for the reader's private memories and personal history."
     },
     "Jean Paul Gaultier": {
-        "x_score": 3.0,
-        "x_reasoning": "The text employs an authoritative third-person perspective and monumental brand assertions of 'savoir-faire' and 'reintroducing luxury' rather than revealing vulnerable or intimate imperfections.",
-        "y_score": 1.8,
-        "y_reasoning": "The copy explicitly champions a 'shared cultural narrative' and an 'extended family of icons,' positioning the brand as a collective, rebellious movement rather than a private diary."
+        "x_score": 1.0,
+        "x_reasoning": "The text asserts absolute dominance through commanding imperatives like 'witness' and 'surrender' alongside explicit declarations of authority and power.",
+        "y_score": 0.5,
+        "y_reasoning": "It relies entirely on collective myth, framing the fragrance around legendary archetypes, theatrical spectacle, and a self-proclaimed shared cultural obsession."
+    },
+    "Viktor & Rolf": {
+        "x_score": 1.5,
+        "x_reasoning": "The text employs assertive superlatives and monument-building language like 'ultimate weapon' and 'undeniable trail' to project absolute brand dominance.",
+        "y_score": 2.0,
+        "y_reasoning": "The copy operates entirely within a shared, theatrical fantasy centered on the collective archetype of glamour rather than private, intimate memories."
     },
     "Mancera": {
-        "x_score": 1.5,
-        "x_reasoning": "The text employs third-person authority, high-status establishment markers, and an unwavering tone of luxury, firmly positioning the brand as a dominant monument.",
-        "y_score": 2.0,
-        "y_reasoning": "The narrative draws on shared cultural movements like Art Deco and historic prestige locations to construct a collective myth of classic elegance rather than a private, intimate truth."
+        "x_score": 0.4,
+        "x_reasoning": "The copy leverages extreme superlatives, third-person authority, and explicit declarations of 'undeniable authority' to establish a monumental, dominant brand voice.",
+        "y_score": 0.8,
+        "y_reasoning": "The text relies on tribal gatekeeping for 'the initiated' and sweeping cultural archetypes of 'Western mastery and Eastern opulence' rather than private, diaristic memories."
+    },
+    "Creed": {
+        "x_score": 0.8,
+        "x_reasoning": "The copy asserts supreme authority through third-person declarations, superlatives like 'unrivaled,' and power-centric language like 'reigning supreme.'",
+        "y_score": 0.5,
+        "y_reasoning": "The narrative relies entirely on historical legacy, royal archetypes, and collective heritage rather than intimate personal memories."
+    },
+    "Byredo": {
+        "x_score": 8.5,
+        "x_reasoning": "The text uses first-person intent, somatic language like 'fleshy' and 'skin', and explicitly frames itself as 'unfiltered' and 'stripped back' to establish vulnerability.",
+        "y_score": 8.8,
+        "y_reasoning": "The copy reads like a private diary, focusing on nostalgic solitude, hyper-specific odd details like 'ink on paper', and a secret relationship with the elements."
     },
     "VARO": {
         "x_score": 9.0,
-        "x_reasoning": "The text rejects dominant authority in favor of somatic intimacy, whispering directly to the reader's skin as an unfiltered, vulnerable confidant.",
+        "x_reasoning": "The brand rejects public dominance, using direct address and somatic imagery to position itself as an intimate confidant whispering directly to the skin.",
         "y_score": 9.5,
-        "y_reasoning": "It eschews collective heritage and shared archetypes, focusing entirely on solitary, hyper-specific memory and private secrets that only the individual remembers."
-    },
-    "Viktor & Rolf": {
-        "x_score": 2.0,
-        "x_reasoning": "The text employs authoritative, third-person declarations of commanding authority and confrontational design, speaking as a monumental artistic force.",
-        "y_score": 1.5,
-        "y_reasoning": "The brand explicitly prioritizes public spectacle, stating that it transforms private individual experience into a shared cultural narrative."
-    },
-    "Creed": {
-        "x_score": 1.5,
-        "x_reasoning": "The text establishes an authoritative, third-person narrative centered on dynastic lineage, royal power, and prestige, completely avoiding any vulnerability.",
-        "y_score": 2.0,
-        "y_reasoning": "It relies heavily on heritage, royal archetypes, and a shared cultural legacy to position the brand as a collective myth rather than a private, hyper-specific memory."
-    },
-    "Byredo": {
-        "x_score": 3.2,
-        "x_reasoning": "The copy maintains a controlled, third-person curatorial authority and intellectualized design vocabulary rather than adopting a vulnerable or direct emotional address.",
-        "y_score": 4.8,
-        "y_reasoning": "The text explicitly balances individual intimate nostalgia with a structured, universal 'living library' of shared global and cultural narratives."
+        "y_reasoning": "The copy focuses entirely on solitary memory, private secrets, and hyper-specific personal nostalgia, shunning any collective or mythic framing."
     }
 }
