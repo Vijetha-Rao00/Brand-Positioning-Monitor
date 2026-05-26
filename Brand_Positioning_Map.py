@@ -6,6 +6,7 @@ import os
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
+# Hide Streamlit's default padding and UI chrome
 st.markdown("""
     <style>
         .block-container { padding: 0rem; max-width: 100%; }
@@ -43,28 +44,52 @@ if os.path.exists(hist_path):
 else:
     hist_scores = {}
 
-# Apple System Colors
 color_map = {
     "Chanel": "#e8e4dc", "Hermès": "#d4a090", "YSL": "#c4a0d4", "Maison Margiela": "#b8a0d4",
     "Jean Paul Gaultier": "#90c0d4", "Viktor & Rolf": "#90d4a8", "Mancera": "#d4d090",
-    "Creed": "#d4c490", "Byredo": "#90a8d4", "VARŌ": "#c9a96e"
+    "Creed": "#d4c490", "Byredo": "#90a8d4", "VARŌ": "#c9a96e", "VARO": "#c9a96e"
 }
 
 js_brands = []
 js_scores = {}
 js_commentary = {}
+js_drift = []
 
 for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    cx = (x / 10.0) * 760
-    cy = ((10.0 - y) / 10.0) * 440
+    # NEW MATH: Safe-Zone Padding to prevent Canvas Clipping
+    # SVG Canvas is 760x440. We add 60px X-padding and 50px Y-padding.
+    cx = 60 + (x / 10.0) * 640
+    cy = 50 + ((10.0 - y) / 10.0) * 340
 
     hx, hy = None, None
     if brand in hist_scores:
-        hx = (hist_scores[brand].get("x_score", 5) / 10.0) * 760
-        hy = ((10.0 - hist_scores[brand].get("y_score", 5)) / 10.0) * 440
+        hx_raw = hist_scores[brand].get("x_score", 5)
+        hy_raw = hist_scores[brand].get("y_score", 5)
+        hx = 60 + (hx_raw / 10.0) * 640
+        hy = 50 + ((10.0 - hy_raw) / 10.0) * 340
+
+        # Calculate dynamic drift data for the bar charts
+        delta = x - hx_raw
+        dir_str = "up" if delta > 0 else "down" if delta < 0 else ""
+        delta_str = f"{delta:+.1f}" if delta != 0 else "0.0"
+        js_drift.append({
+            "brand": "M. Margiela" if brand == "Maison Margiela" else brand,
+            "old": round(hx_raw * 10, 1),
+            "curr": round(x * 10, 1),
+            "delta": delta_str,
+            "dir": dir_str
+        })
+    else:
+        js_drift.append({
+            "brand": "VARŌ" if brand == "VARO" else brand,
+            "old": None,
+            "curr": round(x * 10, 1),
+            "delta": "New",
+            "dir": ""
+        })
 
     js_brands.append({
         "name": brand, "color": color_map.get(brand, "#ffffff"),
@@ -135,6 +160,7 @@ custom_html_template = """
   }
   body > * { position: relative; z-index: 1; }
 
+  /* NAV */
   nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 1.25rem 2.5rem;
@@ -146,13 +172,21 @@ custom_html_template = """
   .nav-brand { display: flex; flex-direction: column; gap: 1px; }
   .nav-brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.08em; color: var(--white); }
   .nav-brand-sub { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 300; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; font-weight: 300; }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a.active { color: var(--gold); }
+  .nav-pill { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 16px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+  .nav-pill:hover { border-color: var(--gold-dim); color: var(--gold); background: rgba(201,169,110,0.06); }
 
+  /* LAYOUT */
   .layout {
     display: grid;
     grid-template-columns: 260px 1fr 320px;
     min-height: calc(100vh - 65px);
   }
 
+  /* LEFT SIDEBAR */
   .sidebar-left {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem 1.25rem;
@@ -172,6 +206,7 @@ custom_html_template = """
     border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   }
 
+  /* Brand list */
   .brand-list { display: flex; flex-direction: column; gap: 3px; }
   .brand-item {
     display: flex; align-items: center; gap: 9px;
@@ -180,6 +215,7 @@ custom_html_template = """
     border: 1px solid transparent;
   }
   .brand-item:hover { background: var(--glass-hover); }
+  .brand-item.active { background: var(--glass-bg); border-color: var(--glass-border); }
   .brand-item.selected-focus { background: rgba(201,169,110,0.06); border-color: var(--gold-dim); }
   .brand-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; transition: color 0.15s; }
@@ -187,13 +223,24 @@ custom_html_template = """
   .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; }
   .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
 
+  /* Toggles */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.03em; }
+  .toggle { width: 34px; height: 19px; background: rgba(255,255,255,0.08); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; }
+  .toggle.on { background: rgba(201,169,110,0.25); border-color: var(--gold-dim); }
+  .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
+  .toggle.on::after { left: 17px; background: var(--gold); }
+
+  /* Axis info */
   .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
-  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; }
+  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; font-weight: 400; }
   .axis-poles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
   .axis-pole { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
   .axis-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), var(--gold-dim), var(--glass-border)); margin: 0 8px; }
-  .axis-desc { font-size: 10px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; }
+  .axis-desc { font-size: 10px; color: var(--text-tertiary); line-height: 1.5; font-style: italic; font-family: 'Cormorant Garamond', serif; }
 
+  /* MAIN MAP */
   .main-map {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem;
@@ -205,6 +252,9 @@ custom_html_template = """
   .map-header { display: flex; align-items: flex-start; justify-content: space-between; }
   .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--white); }
   .map-subtitle { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.06em; font-weight: 300; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-ghost { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
 
   .map-container {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -235,14 +285,35 @@ custom_html_template = """
   .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
   .quadrant-brands { font-size: 11px; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
 
+  .drift-section { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 1.25rem; }
+  .drift-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .drift-title { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); }
+  .drift-legend { display: flex; gap: 1rem; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; color: var(--text-tertiary); }
+  .legend-dot-old { width: 5px; height: 5px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); }
+  .legend-dot-new { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+  .drift-bars { display: flex; flex-direction: column; gap: 9px; }
+  .drift-row { display: grid; grid-template-columns: 100px 1fr 44px; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; transition: background 0.15s; }
+  .drift-row.highlighted { background: rgba(201,169,110,0.05); }
+  .drift-brand-name { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
+  .drift-track { height: 3px; background: rgba(255,255,255,0.04); border-radius: 2px; position: relative; }
+  .drift-old-marker { position: absolute; height: 9px; width: 1.5px; background: rgba(255,255,255,0.2); top: -3px; border-radius: 1px; }
+  .drift-new-marker { position: absolute; height: 9px; width: 2.5px; background: var(--gold); top: -3px; border-radius: 1px; }
+  .drift-connector { position: absolute; height: 2px; top: 0.5px; background: linear-gradient(90deg, rgba(255,255,255,0.1), var(--gold-dim)); }
+  .drift-delta { font-size: 9.5px; font-family: 'Cormorant Garamond', serif; color: var(--text-tertiary); text-align: right; }
+  .drift-delta.up { color: #8fc47a; }
+  .drift-delta.down { color: #c47a7a; }
+
   .whitespace-alert {
     background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
     border: 1px solid var(--gold-dim); border-radius: var(--radius);
     padding: 1.1rem 1.25rem; display: flex; gap: 0.9rem; align-items: flex-start;
   }
-  .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; font-weight: 400; }
+  .alert-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold); margin-top: 2px; }
+  .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
   .alert-text { font-family: 'Cormorant Garamond', serif; font-size: 12.5px; font-style: italic; color: var(--text-secondary); line-height: 1.7; }
 
+  /* RIGHT PANEL */
   .panel-right {
     padding: 1.5rem 1.25rem;
     background: rgba(8,10,15,0.5);
@@ -270,29 +341,36 @@ custom_html_template = """
   .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; }
   .score-axis-name { font-size: 9.5px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; margin-top: 2px; }
   .score-bar-track { width: 100%; height: 2.5px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s; }
+
+  .position-insight {
+    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
+    border: 1px solid rgba(201,169,110,0.15); border-radius: var(--radius-sm);
+    padding: 1rem; margin-top: 0.75rem;
+  }
+  .position-insight-header { font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .position-insight-quadrant { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-style: italic; color: var(--white); margin-bottom: 8px; }
+  .position-insight-text { font-size: 11px; color: var(--text-secondary); line-height: 1.65; font-weight: 300; }
 
   .commentary-block {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); padding: 1.25rem;
-    display: flex; flex-direction: column; gap: 0.9rem;
+    border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem;
   }
   .commentary-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
   .commentary-quote {
-    font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 300;
-    font-style: italic; color: var(--text-secondary); line-height: 1.75;
+    font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 300; font-style: italic; color: var(--text-secondary); line-height: 1.75;
     border-left: 1px solid var(--gold-dim); padding-left: 0.9rem;
   }
   .reasoning-list { display: flex; flex-direction: column; gap: 7px; }
   .reasoning-row { display: flex; gap: 8px; align-items: flex-start; }
-  .reasoning-tag { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+  .reasoning-tag { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 2px; }
   .tag-x { background: rgba(201,169,110,0.1); color: var(--gold); border: 1px solid rgba(201,169,110,0.2); }
   .tag-y { background: rgba(160,185,220,0.1); color: #a0b9dc; border: 1px solid rgba(160,185,220,0.2); }
   .reasoning-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.6; font-weight: 300; }
 
   .empty-state { text-align: center; padding: 2rem 1rem; }
   .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
-  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
+  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); }
 </style>
 </head>
 <body>
@@ -316,22 +394,23 @@ custom_html_template = """
       <div class="brand-list" id="brand-list"></div>
     </div>
     <div>
+      <div class="section-label">Display</div>
+      <div class="glass-card" style="padding: 2px 12px;">
+        <div class="toggle-row">
+          <span class="toggle-label">Drift arrows (2021)</span>
+          <div class="toggle on" id="toggle-drift"></div>
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="section-label">Axes Matrix</div>
       <div class="axis-block">
         <div class="axis-name">X — Tone of Voice</div>
-        <div class="axis-poles">
-          <span class="axis-pole">Dominance</span>
-          <div class="axis-line"></div>
-          <span class="axis-pole">Vulnerability</span>
-        </div>
+        <div class="axis-poles"><span class="axis-pole">Dominance</span><div class="axis-line"></div><span class="axis-pole">Vulnerability</span></div>
       </div>
       <div class="axis-block">
         <div class="axis-name">Y — Narrative Scope</div>
-        <div class="axis-poles">
-          <span class="axis-pole">Collective</span>
-          <div class="axis-line"></div>
-          <span class="axis-pole">Private</span>
-        </div>
+        <div class="axis-poles"><span class="axis-pole">Collective</span><div class="axis-line"></div><span class="axis-pole">Private</span></div>
       </div>
     </div>
   </aside>
@@ -352,6 +431,9 @@ custom_html_template = """
           <pattern id="grid" width="76" height="44" patternUnits="userSpaceOnUse">
             <path d="M 76 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.028)" stroke-width="0.5"/>
           </pattern>
+          <marker id="arrowhead" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
+            <path d="M0,0 L0,5 L5,2.5 Z" fill="rgba(201,169,110,0.55)"/>
+          </marker>
           <filter id="glow-gold"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
@@ -368,12 +450,19 @@ custom_html_template = """
         <text x="380" y="14" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">PRIVATE TRUTH</text>
         <text x="380" y="434" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">COLLECTIVE MYTH</text>
 
+        <!-- Drift Layer (Toggled via JS) -->
+        <g id="drift-layer" style="display: block;">
+            <g id="drift-arrows"></g>
+            <g id="ghost-positions"></g>
+        </g>
+
         <!-- Brand nodes injected via JS -->
         <g id="brands-group"></g>
 
         <!-- Pulse ring for selected brand -->
         <circle id="pulse-ring" cx="-100" cy="-100" r="14" fill="none" stroke="rgba(201,169,110,0.4)" stroke-width="1.5" opacity="0"/>
       </svg>
+
       <div class="tooltip" id="tooltip">
         <div class="tooltip-brand" id="tt-brand">—</div>
         <div class="tooltip-row"><span>Voice register</span><span class="tooltip-val" id="tt-x">—</span></div>
@@ -402,6 +491,18 @@ custom_html_template = """
           <div class="quadrant-brands" id="q-vc">Loading...</div>
         </div>
       </div>
+    </div>
+
+    <!-- Drift Bar Chart -->
+    <div class="drift-section">
+      <div class="drift-header">
+        <span class="drift-title">Drift Analysis — X Axis 2021 → 2025</span>
+        <div class="drift-legend">
+          <div class="legend-item"><div class="legend-dot-old"></div><span>2021</span></div>
+          <div class="legend-item"><div class="legend-dot-new"></div><span>2025</span></div>
+        </div>
+      </div>
+      <div class="drift-bars" id="drift-bars"></div>
     </div>
 
     <div class="whitespace-alert" style="margin-top: 20px;">
@@ -444,10 +545,19 @@ custom_html_template = """
             <div class="score-bar-track"><div class="score-bar-fill" id="bar-y" style="width:0%"></div></div>
           </div>
         </div>
+
+        <div class="position-insight" id="position-insight">
+          <div class="position-insight-header">Position Intelligence</div>
+          <div class="position-insight-quadrant" id="pi-quadrant">—</div>
+          <div class="position-insight-text" id="pi-text">—</div>
+          <div class="insight-stat">
+            <span class="insight-stat-icon">→</span>
+            <span class="insight-stat-text" id="pi-implication">—</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Commentary -->
     <div class="commentary-block" id="commentary-block">
       <div class="commentary-label">Agent 4 (Critic) Execution Log</div>
       <div id="commentary-empty" style="font-size:11px; color:var(--text-tertiary); font-style:italic; font-family:'Cormorant Garamond',serif; line-height:1.6;">
@@ -476,9 +586,13 @@ custom_html_template = """
 const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
+const driftData = __DYNAMIC_DRIFT_PLACEHOLDER__;
 
-// ── RENDER BRAND NODES ──
+// ── RENDER BRAND NODES & DRIFT ARROWS ──
 const svg = document.getElementById('brands-group');
+const driftArrowsGroup = document.getElementById('drift-arrows');
+const ghostPositionsGroup = document.getElementById('ghost-positions');
+
 brands.forEach((b, i) => {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "brand-node");
@@ -491,15 +605,23 @@ brands.forEach((b, i) => {
       <circle cx="${b.cx}" cy="${b.cy}" r="13" fill="rgba(201,169,110,0.07)"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="26" fill="none" stroke="rgba(201,169,110,0.1)" stroke-width="1" stroke-dasharray="3,4"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(16,12,6,0.85)" stroke="${b.color}" stroke-width="1.5"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="4.5" fill="${b.color}" filter="url(#glow-gold)"/>
       <text x="${b.cx}" y="${b.cy-14}" font-family="Cormorant Garamond,serif" font-size="10.5" font-style="italic" font-weight="400" letter-spacing="2" fill="rgba(201,169,110,0.85)" text-anchor="middle">VARŌ</text>
     `;
   } else {
+    // Dynamic text positioning for left-most nodes
+    let textX = b.cx;
+    let textAnchor = "middle";
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(18,22,30,0.7)" stroke="${b.color}" stroke-width="1.2" opacity="0.85"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" opacity="0.9"/>
-      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name}</text>
+      <text x="${textX}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="${textAnchor}">${b.name}</text>
     `;
+  }
+
+  // Draw Drift Vectors
+  if (b.x21 !== null && b.y21 !== null) {
+      driftArrowsGroup.innerHTML += `<line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="rgba(201,169,110,0.3)" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>`;
+      ghostPositionsGroup.innerHTML += `<circle cx="${b.x21}" cy="${b.y21}" r="4.5" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2,2"/>`;
   }
 
   g.addEventListener('mouseenter', (e) => showTooltip(e, b));
@@ -509,7 +631,57 @@ brands.forEach((b, i) => {
   svg.appendChild(g);
 });
 
-// ── POPULATE QUADRANTS DYNAMICALLY ──
+// ── DRIFT TOGGLE ──
+const driftToggle = document.getElementById('toggle-drift');
+const driftLayer = document.getElementById('drift-layer');
+driftToggle.addEventListener('click', function() {
+  this.classList.toggle('on');
+  driftLayer.style.display = this.classList.contains('on') ? 'block' : 'none';
+});
+
+// ── DRIFT BARS ──
+const driftEl = document.getElementById('drift-bars');
+driftData.forEach(d => {
+  const row = document.createElement('div');
+  row.className = 'drift-row';
+  row.dataset.brand = d.brand;
+  const connLeft = d.old !== null ? Math.min(d.old, d.curr) : d.curr;
+  const connW = d.old !== null ? Math.abs(d.curr - d.old) : 0;
+  row.innerHTML = `
+    <span class="drift-brand-name">${d.brand}</span>
+    <div class="drift-track">
+      ${d.old !== null ? `<div class="drift-old-marker" style="left:${d.old}%"></div>` : ''}
+      ${connW > 0 ? `<div class="drift-connector" style="left:${connLeft}%;width:${connW}%"></div>` : ''}
+      <div class="drift-new-marker" style="left:${d.curr}%"></div>
+    </div>
+    <span class="drift-delta ${d.dir}">${d.delta}</span>
+  `;
+  driftEl.appendChild(row);
+});
+
+const quadrantIntelligence = {
+  "dominant-collective": {
+    label: "Dominant · Collective",
+    text: "The most populated territory. Brands here speak with institutional authority toward a broad cultural audience. High collision risk — differentiation is hard when everyone speaks the language of legacy.",
+    implication: "Brands drifting deeper here risk commoditisation."
+  },
+  "dominant-private": {
+    label: "Dominant · Private",
+    text: "A defensible position. These brands speak with authority but to a personal inner world. The wearer feels selected rather than inducted.",
+    implication: "Entry requires credible craft heritage."
+  },
+  "vulnerable-private": {
+    label: "Vulnerable · Private ✦",
+    text: "Brands here speak directly to emotional memory without asserting authority. Maison Margiela validated this space. VARŌ targets the deepest corner.",
+    implication: "VARŌ's chosen territory. High differentiation."
+  },
+  "vulnerable-collective": {
+    label: "Vulnerable · Collective",
+    text: "Unoccupied. No brand speaks with emotional openness toward a shared cultural world simultaneously.",
+    implication: "The most interesting structural gap in the category."
+  }
+};
+
 let qDP = [], qVP = [], qDC = [], qVC = [];
 brands.forEach(b => {
     let s = scores[b.name];
@@ -523,7 +695,6 @@ document.getElementById('q-dp').textContent = qDP.join(", ") || "Empty";
 document.getElementById('q-vc').textContent = qVC.join(", ") || "Empty";
 document.getElementById('q-vp').textContent = qVP.join(", ") || "Empty";
 
-// ── BRAND LIST ──
 const brandListEl = document.getElementById('brand-list');
 brands.forEach(b => {
   const s = scores[b.name];
@@ -539,13 +710,15 @@ brands.forEach(b => {
   brandListEl.appendChild(item);
 });
 
-// ── SELECTION ──
 const pulseRing = document.getElementById('pulse-ring');
 
 function selectBrand(name) {
   const b = brands.find(br => br.name === name);
   const s = scores[name];
   const c = commentary[name];
+
+  const qKey = (s.x >= 5 ? "vulnerable" : "dominant") + "-" + (s.y >= 5 ? "private" : "collective");
+  const qi = quadrantIntelligence[qKey];
 
   document.querySelectorAll('.brand-item').forEach(el => {
     el.classList.remove('selected-focus');
@@ -560,6 +733,11 @@ function selectBrand(name) {
   pulseRing.setAttribute('cy', b.cy);
   pulseRing.setAttribute('opacity', '1');
 
+  document.querySelectorAll('.drift-row').forEach(row => {
+    const shortName = name === "Maison Margiela" ? "M. Margiela" : name;
+    row.classList.toggle('highlighted', row.dataset.brand === shortName || row.dataset.brand === name);
+  });
+
   document.getElementById('selected-pill').textContent = name;
   document.getElementById('score-block').classList.add('has-selection');
   document.getElementById('empty-state').style.display = 'none';
@@ -572,6 +750,10 @@ function selectBrand(name) {
   document.getElementById('bar-x').style.width = (s.x * 10) + '%';
   document.getElementById('bar-y').style.width = (s.y * 10) + '%';
 
+  document.getElementById('pi-quadrant').textContent = qi.label;
+  document.getElementById('pi-text').textContent = qi.text;
+  document.getElementById('pi-implication').textContent = qi.implication;
+
   document.getElementById('commentary-empty').style.display = 'none';
   document.getElementById('commentary-content').style.display = 'block';
   document.getElementById('commentary-quote').textContent = c.quote;
@@ -579,7 +761,6 @@ function selectBrand(name) {
   document.getElementById('reasoning-y').textContent = c.ry;
 }
 
-// ── TOOLTIP ──
 const tooltip = document.getElementById('tooltip');
 const mapContainer = document.getElementById('map-container');
 
@@ -600,11 +781,11 @@ function moveTooltip(e) {
 }
 function hideTooltip() { tooltip.classList.remove('visible'); }
 
-// ── RESET ──
 document.getElementById('map-svg').addEventListener('click', (e) => {
   if (e.target.tagName === 'rect' || e.target.tagName === 'line' || e.target.tagName === 'text') {
     document.querySelectorAll('.brand-node').forEach(n => { n.style.opacity = '1'; });
     document.querySelectorAll('.brand-item').forEach(el => el.classList.remove('selected-focus'));
+    document.querySelectorAll('.drift-row').forEach(r => r.classList.remove('highlighted'));
     pulseRing.setAttribute('opacity', '0');
     pulseRing.setAttribute('cx', '-100');
     document.getElementById('score-block').classList.remove('has-selection');
@@ -626,6 +807,8 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_SCORES_PLACEHOLDER__", json.dumps(js_scores)
 ).replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
+).replace(
+    "__DYNAMIC_DRIFT_PLACEHOLDER__", json.dumps(js_drift)
 )
 
 components.html(html_with_live_data, height=950, scrolling=True)
