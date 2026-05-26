@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import json
 import os
 
@@ -15,7 +16,6 @@ st.markdown("""
 
 
 # --- 2. OS-AGNOSTIC DATA ROUTING ---
-# This fixes the Windows vs Linux case-sensitivity issue for cloud deployment
 def get_valid_path(*paths):
     for path in paths:
         if os.path.exists(path):
@@ -32,11 +32,6 @@ kb_path = get_valid_path("data/knowledge_base/brand_data.json", "Data/Knowledge_
 
 if not os.path.exists(scores_path):
     st.error(f"Cloud Deployment Error: The Linux server cannot find the scores file.")
-    st.write("Here is what the server currently sees in the main folder:")
-    st.write(os.listdir())
-    st.write("Here is what it sees inside the Data folder (if it exists):")
-    st.write(os.listdir("Data") if os.path.exists("Data") else os.listdir("data") if os.path.exists(
-        "data") else "No data folder found.")
     st.stop()
 
 with open(scores_path, "r", encoding="utf-8") as f:
@@ -174,7 +169,7 @@ custom_html_template = """
 
   .glass-card {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); backdrop-filter: var(--blur);
+    border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   }
 
   .brand-list { display: flex; flex-direction: column; gap: 3px; }
@@ -191,14 +186,6 @@ custom_html_template = """
   .brand-item.selected-focus .brand-item-name { color: var(--gold); }
   .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; }
   .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
-
-  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
-  .toggle-row:last-child { border-bottom: none; }
-  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); }
-  .toggle { width: 34px; height: 19px; background: rgba(255,255,255,0.08); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; }
-  .toggle.on { background: rgba(201,169,110,0.25); border-color: var(--gold-dim); }
-  .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
-  .toggle.on::after { left: 17px; background: var(--gold); }
 
   .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
   .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; }
@@ -247,10 +234,6 @@ custom_html_template = """
   .quadrant-card.highlight { border-color: var(--gold-dim); background: rgba(201,169,110,0.05); }
   .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
   .quadrant-brands { font-size: 11px; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
-
-  .drift-section { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 1.25rem; }
-  .drift-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-  .drift-title { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); }
 
   .whitespace-alert {
     background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
@@ -645,4 +628,4 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-st.html(html_with_live_data)
+components.html(html_with_live_data, height=950, scrolling=True)
