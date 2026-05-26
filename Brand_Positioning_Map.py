@@ -6,7 +6,6 @@ import os
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
-# Hide Streamlit's default padding and UI chrome
 st.markdown("""
     <style>
         .block-container { padding: 0rem; max-width: 100%; }
@@ -50,6 +49,21 @@ color_map = {
     "Creed": "#d4c490", "Byredo": "#90a8d4", "VARŌ": "#c9a96e", "VARO": "#c9a96e"
 }
 
+# THE NEW STRATEGIC INSIGHTS DICTIONARY
+drift_insights = {
+    "Chanel": "Immovable monument. Near-zero drift over 4 years. Insight: Chanel acts as the category's gravitational anchor, relying on absolute consistency rather than adaptation to maintain unquestioned legacy status.",
+    "Hermès": "Minor regression. A slight tightening of its poetic, nature-driven narrative into more structured prestige. Insight: Hermès maintains its core elemental identity while subtly reinforcing its institutional dominance.",
+    "YSL": "Massive repositioning. Pivoted from intimate, nocturnal seduction (Black Opium) to hyper-dominant, daytime defiance (Libre). Insight: A deliberate corporate strategy to abandon intimacy and capture a younger, bolder demographic through collective empowerment.",
+    "Maison Margiela": "Highly defensible stability. Marginal drift toward the center. Insight: Despite corporate ownership, the brand has fiercely protected its hyper-specific 'memory' whitespace, resisting the urge to build monolithic myths.",
+    "Jean Paul Gaultier": "Deepening of the spectacle. Drifted further into collective myth. Insight: JPG is actively doubling down on performative identity and theatrical archetypes, entirely rejecting the modern trend toward vulnerability.",
+    "Viktor & Rolf": "Sustained performance. Minor drift toward dominance. Insight: The brand continues to rely on avant-garde fantasy and maximalism, operating purely as an outward-facing spectacle with no attempt at consumer intimacy.",
+    "Mancera": "Solidified gatekeeping. Remained anchored in its niche. Insight: Stable positioning relying on absolute exclusivity and raw ingredient prestige rather than attempting broader cultural relevance.",
+    "Creed": "Doubling down on dynastic dominance. Further entrenched in historical legacy. Insight: Creed completely ignores modern demands for transparency or vulnerability, relying entirely on royal artisan heritage to justify price premiums.",
+    "Byredo": "Indie-to-Corporate Lifecycle. Noticeable drift away from extreme private truth toward the center. Insight: Post-acquisition scaling requires broader cultural appeal; Byredo is slightly diluting its 'founder diary' intimacy to support global mass-market distribution.",
+    "VARŌ": "New Entrant. Zero historical drift. Insight: Engineered specifically to capture the extreme Vulnerability/Private Truth whitespace that brands like YSL and Byredo abandoned as they scaled.",
+    "VARO": "New Entrant. Zero historical drift. Insight: Engineered specifically to capture the extreme Vulnerability/Private Truth whitespace that brands like YSL and Byredo abandoned as they scaled."
+}
+
 js_brands = []
 js_scores = {}
 js_commentary = {}
@@ -59,8 +73,6 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    # NEW MATH: Safe-Zone Padding to prevent Canvas Clipping
-    # SVG Canvas is 760x440. We add 60px X-padding and 50px Y-padding.
     cx = 60 + (x / 10.0) * 640
     cy = 50 + ((10.0 - y) / 10.0) * 340
 
@@ -71,7 +83,6 @@ for brand, data in live_scores.items():
         hx = 60 + (hx_raw / 10.0) * 640
         hy = 50 + ((10.0 - hy_raw) / 10.0) * 340
 
-        # Calculate dynamic drift data for the bar charts
         delta = x - hx_raw
         dir_str = "up" if delta > 0 else "down" if delta < 0 else ""
         delta_str = f"{delta:+.1f}" if delta != 0 else "0.0"
@@ -109,7 +120,8 @@ for brand, data in live_scores.items():
     js_commentary[brand] = {
         "quote": f"Agent 4 Audit Log: {data.get('critique', 'No audit log available.')}",
         "rx": data.get("x_reasoning", "No reasoning provided."),
-        "ry": data.get("y_reasoning", "No reasoning provided.")
+        "ry": data.get("y_reasoning", "No reasoning provided."),
+        "drift_insight": drift_insights.get(brand, "No drift data available.")
     }
 
 # --- 3. THE HTML TEMPLATE ---
@@ -160,7 +172,6 @@ custom_html_template = """
   }
   body > * { position: relative; z-index: 1; }
 
-  /* NAV */
   nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 1.25rem 2.5rem;
@@ -172,21 +183,13 @@ custom_html_template = """
   .nav-brand { display: flex; flex-direction: column; gap: 1px; }
   .nav-brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.08em; color: var(--white); }
   .nav-brand-sub { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 300; }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
-  .nav-links a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; font-weight: 300; }
-  .nav-links a:hover { color: var(--white); }
-  .nav-links a.active { color: var(--gold); }
-  .nav-pill { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 16px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
-  .nav-pill:hover { border-color: var(--gold-dim); color: var(--gold); background: rgba(201,169,110,0.06); }
 
-  /* LAYOUT */
   .layout {
     display: grid;
     grid-template-columns: 260px 1fr 320px;
     min-height: calc(100vh - 65px);
   }
 
-  /* LEFT SIDEBAR */
   .sidebar-left {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem 1.25rem;
@@ -203,10 +206,9 @@ custom_html_template = """
 
   .glass-card {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-radius: var(--radius); backdrop-filter: var(--blur);
   }
 
-  /* Brand list */
   .brand-list { display: flex; flex-direction: column; gap: 3px; }
   .brand-item {
     display: flex; align-items: center; gap: 9px;
@@ -215,7 +217,6 @@ custom_html_template = """
     border: 1px solid transparent;
   }
   .brand-item:hover { background: var(--glass-hover); }
-  .brand-item.active { background: var(--glass-bg); border-color: var(--glass-border); }
   .brand-item.selected-focus { background: rgba(201,169,110,0.06); border-color: var(--gold-dim); }
   .brand-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; transition: color 0.15s; }
@@ -223,7 +224,6 @@ custom_html_template = """
   .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; }
   .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
 
-  /* Toggles */
   .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
   .toggle-row:last-child { border-bottom: none; }
   .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.03em; }
@@ -232,15 +232,12 @@ custom_html_template = """
   .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
   .toggle.on::after { left: 17px; background: var(--gold); }
 
-  /* Axis info */
   .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
   .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; font-weight: 400; }
   .axis-poles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
   .axis-pole { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
   .axis-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), var(--gold-dim), var(--glass-border)); margin: 0 8px; }
-  .axis-desc { font-size: 10px; color: var(--text-tertiary); line-height: 1.5; font-style: italic; font-family: 'Cormorant Garamond', serif; }
 
-  /* MAIN MAP */
   .main-map {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem;
@@ -252,9 +249,6 @@ custom_html_template = """
   .map-header { display: flex; align-items: flex-start; justify-content: space-between; }
   .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--white); }
   .map-subtitle { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.06em; font-weight: 300; }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-  .btn-ghost { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
-  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
 
   .map-container {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -279,7 +273,6 @@ custom_html_template = """
   .quadrant-card {
     padding: 12px; border-radius: var(--radius-sm);
     border: 1px solid var(--glass-border); background: var(--glass-bg);
-    cursor: pointer; transition: all 0.2s;
   }
   .quadrant-card.highlight { border-color: var(--gold-dim); background: rgba(201,169,110,0.05); }
   .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
@@ -309,7 +302,6 @@ custom_html_template = """
     border: 1px solid var(--gold-dim); border-radius: var(--radius);
     padding: 1.1rem 1.25rem; display: flex; gap: 0.9rem; align-items: flex-start;
   }
-  .alert-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold); margin-top: 2px; }
   .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
   .alert-text { font-family: 'Cormorant Garamond', serif; font-size: 12.5px; font-style: italic; color: var(--text-secondary); line-height: 1.7; }
 
@@ -341,7 +333,7 @@ custom_html_template = """
   .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; }
   .score-axis-name { font-size: 9.5px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; margin-top: 2px; }
   .score-bar-track { width: 100%; height: 2.5px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
 
   .position-insight {
     background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
@@ -351,6 +343,19 @@ custom_html_template = """
   .position-insight-header { font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
   .position-insight-quadrant { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-style: italic; color: var(--white); margin-bottom: 8px; }
   .position-insight-text { font-size: 11px; color: var(--text-secondary); line-height: 1.65; font-weight: 300; }
+
+  /* NEW DRIFT INSIGHT CARD */
+  .drift-insight-block {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem;
+    position: relative; overflow: hidden;
+  }
+  .drift-insight-block::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--gold); opacity: 0.7;
+  }
+  .drift-insight-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
+  .drift-insight-text { font-size: 11px; color: var(--white); line-height: 1.65; font-weight: 300; }
 
   .commentary-block {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -370,7 +375,7 @@ custom_html_template = """
 
   .empty-state { text-align: center; padding: 2rem 1rem; }
   .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
-  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); }
+  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -444,22 +449,21 @@ custom_html_template = """
         <line x1="0" y1="220" x2="760" y2="220" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
         <line x1="380" y1="0" x2="380" y2="440" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
 
-        <!-- Axis labels -->
         <text x="12" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="start">DOMINANCE</text>
         <text x="748" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="end">VULNERABILITY</text>
         <text x="380" y="14" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">PRIVATE TRUTH</text>
         <text x="380" y="434" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">COLLECTIVE MYTH</text>
 
-        <!-- Drift Layer (Toggled via JS) -->
+        <!-- Drift Layer -->
         <g id="drift-layer" style="display: block;">
             <g id="drift-arrows"></g>
             <g id="ghost-positions"></g>
         </g>
 
-        <!-- Brand nodes injected via JS -->
+        <!-- Brand nodes -->
         <g id="brands-group"></g>
 
-        <!-- Pulse ring for selected brand -->
+        <!-- Pulse ring -->
         <circle id="pulse-ring" cx="-100" cy="-100" r="14" fill="none" stroke="rgba(201,169,110,0.4)" stroke-width="1.5" opacity="0"/>
       </svg>
 
@@ -558,6 +562,13 @@ custom_html_template = """
       </div>
     </div>
 
+    <!-- NEW: STRATEGIC DRIFT INSIGHT CARD -->
+    <div class="drift-insight-block" id="drift-insight-block" style="display:none;">
+      <div class="drift-insight-label">Historical Drift (2021 → 2025)</div>
+      <div class="drift-insight-text" id="drift-insight-text">—</div>
+    </div>
+
+    <!-- Commentary -->
     <div class="commentary-block" id="commentary-block">
       <div class="commentary-label">Agent 4 (Critic) Execution Log</div>
       <div id="commentary-empty" style="font-size:11px; color:var(--text-tertiary); font-style:italic; font-family:'Cormorant Garamond',serif; line-height:1.6;">
@@ -608,13 +619,10 @@ brands.forEach((b, i) => {
       <text x="${b.cx}" y="${b.cy-14}" font-family="Cormorant Garamond,serif" font-size="10.5" font-style="italic" font-weight="400" letter-spacing="2" fill="rgba(201,169,110,0.85)" text-anchor="middle">VARŌ</text>
     `;
   } else {
-    // Dynamic text positioning for left-most nodes
-    let textX = b.cx;
-    let textAnchor = "middle";
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(18,22,30,0.7)" stroke="${b.color}" stroke-width="1.2" opacity="0.85"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" opacity="0.9"/>
-      <text x="${textX}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="${textAnchor}">${b.name}</text>
+      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name}</text>
     `;
   }
 
@@ -754,6 +762,12 @@ function selectBrand(name) {
   document.getElementById('pi-text').textContent = qi.text;
   document.getElementById('pi-implication').textContent = qi.implication;
 
+  // POPULATE THE NEW DRIFT INSIGHT CARD
+  document.getElementById('drift-insight-block').style.display = 'flex';
+  // Highlight the delta inside the text to make it actionable
+  let driftText = c.drift_insight;
+  document.getElementById('drift-insight-text').innerHTML = driftText.replace("Insight:", "<br><br><span style='color: var(--gold); font-family: Cormorant Garamond, serif; font-style: italic; font-size: 13px;'>Insight:</span>");
+
   document.getElementById('commentary-empty').style.display = 'none';
   document.getElementById('commentary-content').style.display = 'block';
   document.getElementById('commentary-quote').textContent = c.quote;
@@ -792,6 +806,7 @@ document.getElementById('map-svg').addEventListener('click', (e) => {
     document.getElementById('empty-state').style.display = 'block';
     document.getElementById('brand-detail').style.display = 'none';
     document.getElementById('selected-pill').textContent = '— Select a brand';
+    document.getElementById('drift-insight-block').style.display = 'none';
     document.getElementById('commentary-empty').style.display = 'block';
     document.getElementById('commentary-content').style.display = 'none';
   }
