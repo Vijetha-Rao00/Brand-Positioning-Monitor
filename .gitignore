@@ -1,0 +1,8 @@
+Api_key.txt
+api_key.txt
+firecrawl_key.txt
+tavily_key.txt
+.env
+__pycache__/
+.venv/
+*.pyc

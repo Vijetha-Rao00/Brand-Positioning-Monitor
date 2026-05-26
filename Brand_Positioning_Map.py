@@ -1,0 +1,696 @@
+import streamlit as st
+import streamlit.components.v1 as components
+import json
+import os
+
+# --- 1. STREAMLIT PAGE CONFIG ---
+st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
+
+# Hide Streamlit's default padding and UI chrome
+st.markdown("""
+    <style>
+        .block-container { padding: 0rem; max-width: 100%; }
+        header, #MainMenu, footer {visibility: hidden;}
+        iframe { border: none; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 2. DYNAMIC DATA INJECTION (PYTHON TO JS BRIDGE) ---
+scores_path = "data/scores/final_brand_scores.json"
+hist_path = "data/scores/historical_scores.json"
+
+if not os.path.exists(scores_path):
+    st.error(f"Error: {scores_path} not found. Run critic.py first.")
+    st.stop()
+
+with open(scores_path, "r", encoding="utf-8") as f:
+    live_scores = json.load(f)
+
+if os.path.exists(hist_path):
+    with open(hist_path, "r", encoding="utf-8") as f:
+        hist_scores = json.load(f)
+else:
+    hist_scores = {}
+
+# Claude's UI Colors
+color_map = {
+    "Chanel": "#e8e4dc", "Hermès": "#d4a090", "YSL": "#c4a0d4", "Maison Margiela": "#b8a0d4",
+    "Jean Paul Gaultier": "#90c0d4", "Viktor & Rolf": "#90d4a8", "Mancera": "#d4d090",
+    "Creed": "#d4c490", "Byredo": "#90a8d4", "VARŌ": "#c9a96e"
+}
+
+js_brands = []
+js_scores = {}
+js_commentary = {}
+
+for brand, data in live_scores.items():
+    x = data.get("x_score", 5.0)
+    y = data.get("y_score", 5.0)
+
+    # SVG Math: Map 0-10 scores to 760x440 pixel canvas
+    # X: 0 is left (0px), 10 is right (760px)
+    cx = (x / 10.0) * 760
+    # Y: 0 is bottom (440px), 10 is top (0px)
+    cy = ((10.0 - y) / 10.0) * 440
+
+    # Historical Math
+    hx, hy = None, None
+    if brand in hist_scores:
+        hx = (hist_scores[brand].get("x_score", 5) / 10.0) * 760
+        hy = ((10.0 - hist_scores[brand].get("y_score", 5)) / 10.0) * 440
+
+    js_brands.append({
+        "name": brand,
+        "color": color_map.get(brand, "#ffffff"),
+        "cx": round(cx, 1),
+        "cy": round(cy, 1),
+        "x21": round(hx, 1) if hx is not None else None,
+        "y21": round(hy, 1) if hy is not None else None,
+        "isVaro": (brand == "VARŌ" or brand == "VARO")
+    })
+
+    x_label = "Vulnerability" if x >= 5 else "Dominance"
+    y_label = "Private Truth" if y >= 5 else "Collective Myth"
+
+    js_scores[brand] = {
+        "x": round(x, 2), "y": round(y, 2),
+        "xLabel": x_label, "yLabel": y_label
+    }
+
+    js_commentary[brand] = {
+        "quote": f"Agent 4 Audit Log: {data.get('critique', 'No audit log available.')}",
+        "rx": data.get("x_reasoning", "No reasoning provided."),
+        "ry": data.get("y_reasoning", "No reasoning provided.")
+    }
+
+# --- 3. THE HTML TEMPLATE ---
+custom_html_template = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Positioning Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass-bg: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-hover: rgba(255,255,255,0.07);
+    --blur: blur(24px);
+    --gold: #c9a96e;
+    --gold-dim: rgba(201,169,110,0.3);
+    --white: #f4f0ea;
+    --white-dim: rgba(244,240,234,0.45);
+    --white-faint: rgba(244,240,234,0.15);
+    --bg: #080a0f;
+    --text-primary: #f4f0ea;
+    --text-secondary: rgba(244,240,234,0.55);
+    --text-tertiary: rgba(244,240,234,0.28);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(201,169,110,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(100,120,180,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 60% at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body > * { position: relative; z-index: 1; }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 2.5rem;
+    background: rgba(8,10,15,0.7);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-brand { display: flex; flex-direction: column; gap: 1px; }
+  .nav-brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.08em; color: var(--white); }
+  .nav-brand-sub { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 300; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; font-weight: 300; }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a.active { color: var(--gold); }
+  .nav-pill { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 16px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+  .nav-pill:hover { border-color: var(--gold-dim); color: var(--gold); background: rgba(201,169,110,0.06); }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* LEFT SIDEBAR */
+  .sidebar-left {
+    border-right: 1px solid var(--glass-border);
+    padding: 1.5rem 1.25rem;
+    background: rgba(8,10,15,0.5);
+    backdrop-filter: var(--blur);
+    display: flex; flex-direction: column; gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--text-tertiary); margin-bottom: 0.6rem; font-weight: 400;
+  }
+
+  .glass-card {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  }
+
+  /* Brand list */
+  .brand-list { display: flex; flex-direction: column; gap: 3px; }
+  .brand-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .brand-item:hover { background: var(--glass-hover); }
+  .brand-item.active { background: var(--glass-bg); border-color: var(--glass-border); }
+  .brand-item.selected-focus { background: rgba(201,169,110,0.06); border-color: var(--gold-dim); }
+  .brand-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; letter-spacing: 0.03em; transition: color 0.15s; }
+  .brand-item.active .brand-item-name,
+  .brand-item.selected-focus .brand-item-name { color: var(--white); }
+  .brand-item.selected-focus .brand-item-name { color: var(--gold); }
+  .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; white-space: nowrap; }
+  .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
+
+  /* Toggles */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.03em; }
+  .toggle { width: 34px; height: 19px; background: rgba(255,255,255,0.08); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; }
+  .toggle.on { background: rgba(201,169,110,0.25); border-color: var(--gold-dim); }
+  .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
+  .toggle.on::after { left: 17px; background: var(--gold); }
+
+  /* Axis info */
+  .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
+  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; font-weight: 400; }
+  .axis-poles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .axis-pole { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
+  .axis-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), var(--gold-dim), var(--glass-border)); margin: 0 8px; }
+  .axis-desc { font-size: 10px; color: var(--text-tertiary); line-height: 1.5; font-style: italic; font-family: 'Cormorant Garamond', serif; }
+
+  /* MAIN MAP */
+  .main-map {
+    border-right: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    overflow-y: auto;
+    background: rgba(6,8,13,0.3);
+  }
+
+  .map-header { display: flex; align-items: flex-start; justify-content: space-between; }
+  .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; letter-spacing: 0.04em; color: var(--white); }
+  .map-subtitle { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.06em; font-weight: 300; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-ghost { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+  .btn-gold { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px; border: 1px solid var(--gold-dim); border-radius: 100px; color: var(--gold); background: rgba(201,169,110,0.08); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+  .btn-gold:hover { background: rgba(201,169,110,0.15); border-color: var(--gold); }
+
+  /* MAP SVG container */
+  .map-container {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); backdrop-filter: var(--blur);
+    padding: 1.5rem; position: relative; overflow: hidden;
+  }
+  .map-container::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(201,169,110,0.025) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .map-svg-wrapper { width: 100%; }
+  .map-canvas { width: 100%; height: 100%; }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: rgba(10,13,20,0.95); backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
+    padding: 11px 13px; pointer-events: none; opacity: 0;
+    transition: opacity 0.12s; z-index: 50; min-width: 150px;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip-brand { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400; color: var(--white); margin-bottom: 5px; letter-spacing: 0.04em; }
+  .tooltip-row { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 2px; gap: 12px; }
+  .tooltip-val { color: var(--text-secondary); }
+
+  /* Quadrant summary */
+  .quadrant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .quadrant-card {
+    padding: 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border); background: var(--glass-bg);
+    backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .quadrant-card:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.15); }
+  .quadrant-card.highlight { border-color: var(--gold-dim); background: rgba(201,169,110,0.05); }
+  .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
+  .quadrant-brands { font-size: 11px; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
+  .quadrant-count { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; color: var(--white-faint); float: right; margin-top: -2px; }
+
+  /* Whitespace alert */
+  .whitespace-alert {
+    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
+    border: 1px solid var(--gold-dim); border-radius: var(--radius);
+    padding: 1.1rem 1.25rem; display: flex; gap: 0.9rem; align-items: flex-start;
+  }
+  .alert-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; color: var(--gold); margin-top: 2px; }
+  .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; font-weight: 400; }
+  .alert-text { font-family: 'Cormorant Garamond', serif; font-size: 12.5px; font-style: italic; color: var(--text-secondary); line-height: 1.7; }
+  .alert-brand-tag { display: inline-block; padding: 1px 7px; border-radius: 4px; background: rgba(201,169,110,0.1); color: var(--gold); font-style: normal; font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.07em; margin: 0 1px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 2rem 1rem; }
+  .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
+  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 2px; }
+
+  /* RIGHT PANEL */
+  .panel-right {
+    padding: 1.5rem 1.25rem;
+    background: rgba(8,10,15,0.5);
+    backdrop-filter: var(--blur);
+    display: flex; flex-direction: column; gap: 1.25rem;
+    overflow-y: auto;
+  }
+
+  .score-block {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 1.25rem;
+    transition: border-color 0.3s;
+  }
+  .score-block.has-selection { border-color: var(--gold-dim); }
+  .score-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .score-block-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
+  .selected-brand-pill {
+    font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400;
+    padding: 3px 12px; border-radius: 100px;
+    background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim);
+    color: var(--gold); letter-spacing: 0.06em;
+    transition: all 0.3s;
+  }
+  .score-row { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
+  .score-item { flex: 1; }
+  .score-item-label { font-size: 8.5px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
+  .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; transition: all 0.4s; }
+  .score-axis-name { font-size: 9.5px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; margin-top: 2px; }
+  .score-bar-track { width: 100%; height: 2.5px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+  .position-insight {
+    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
+    border: 1px solid rgba(201,169,110,0.15);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-top: 0.75rem;
+  }
+  .position-insight-header {
+    font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px; font-weight: 400;
+  }
+  .position-insight-quadrant {
+    font-family: 'Cormorant Garamond', serif; font-size: 13px; font-style: italic;
+    color: var(--white); margin-bottom: 8px; letter-spacing: 0.02em;
+  }
+  .position-insight-text {
+    font-size: 11px; color: var(--text-secondary); line-height: 1.65; font-weight: 300;
+  }
+
+  .commentary-block {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 0.9rem;
+  }
+  .commentary-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
+  .commentary-quote {
+    font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 300;
+    font-style: italic; color: var(--text-secondary); line-height: 1.75;
+    border-left: 1px solid var(--gold-dim); padding-left: 0.9rem;
+    transition: all 0.3s;
+  }
+  .reasoning-list { display: flex; flex-direction: column; gap: 7px; }
+  .reasoning-row { display: flex; gap: 8px; align-items: flex-start; }
+  .reasoning-tag { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+  .tag-x { background: rgba(201,169,110,0.1); color: var(--gold); border: 1px solid rgba(201,169,110,0.2); }
+  .tag-y { background: rgba(160,185,220,0.1); color: #a0b9dc; border: 1px solid rgba(160,185,220,0.2); }
+  .reasoning-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.6; font-weight: 300; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <span class="nav-brand-name">Positioning Monitor</span>
+    <span class="nav-brand-sub">Luxury Fragrance Intelligence</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="active">Map</a></li>
+    <li><a href="#">About</a></li>
+  </ul>
+</nav>
+
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar-left">
+    <div>
+      <div class="section-label">Brands on Map</div>
+      <div class="brand-list" id="brand-list"></div>
+    </div>
+    <div>
+      <div class="section-label">Axes</div>
+      <div class="axis-block">
+        <div class="axis-name">X — Voice Register</div>
+        <div class="axis-poles">
+          <span class="axis-pole">Dominance</span>
+          <div class="axis-line"></div>
+          <span class="axis-pole">Vulnerability</span>
+        </div>
+        <div class="axis-desc">"Does the brand speak as a monument or as a confidant?"</div>
+      </div>
+      <div class="axis-block">
+        <div class="axis-name">Y — Address</div>
+        <div class="axis-poles">
+          <span class="axis-pole">Collective</span>
+          <div class="axis-line"></div>
+          <span class="axis-pole">Private</span>
+        </div>
+        <div class="axis-desc">"Does it build a shared myth or whisper to one person?"</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN MAP -->
+  <main class="main-map">
+    <div class="map-header">
+      <div>
+        <div class="map-title">Perceptual Map — Luxury Fragrance 2025</div>
+        <div class="map-subtitle">Click any brand node to audit Agent 4 execution logic</div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-container" id="map-container">
+      <svg class="map-canvas" viewBox="0 0 760 440" id="map-svg" style="display:block;">
+        <defs>
+          <pattern id="grid" width="76" height="44" patternUnits="userSpaceOnUse">
+            <path d="M 76 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.028)" stroke-width="0.5"/>
+          </pattern>
+          <filter id="glow-sm"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="glow-gold"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <rect width="760" height="440" fill="url(#grid)"/>
+        <rect x="380" y="0" width="380" height="220" fill="rgba(201,169,110,0.012)"/>
+
+        <!-- Axes -->
+        <line x1="0" y1="220" x2="760" y2="220" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
+        <line x1="380" y1="0" x2="380" y2="440" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
+
+        <!-- Axis labels -->
+        <text x="12" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="start">DOMINANCE</text>
+        <text x="748" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="end">VULNERABILITY</text>
+        <text x="380" y="14" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">PRIVATE TRUTH</text>
+        <text x="380" y="434" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">COLLECTIVE MYTH</text>
+
+        <!-- Brand nodes injected via JS -->
+        <g id="brands-group"></g>
+
+        <!-- Pulse ring for selected brand -->
+        <circle id="pulse-ring" cx="-100" cy="-100" r="14" fill="none" stroke="rgba(201,169,110,0.4)" stroke-width="1.5" opacity="0"/>
+      </svg>
+      <div class="tooltip" id="tooltip">
+        <div class="tooltip-brand" id="tt-brand">—</div>
+        <div class="tooltip-row"><span>Voice register</span><span class="tooltip-val" id="tt-x">—</span></div>
+        <div class="tooltip-row"><span>Address</span><span class="tooltip-val" id="tt-y">—</span></div>
+      </div>
+    </div>
+
+    <!-- Quadrant distribution -->
+    <div>
+      <div class="section-label" style="margin-bottom:0.6rem">Quadrant Summary</div>
+      <div class="quadrant-grid">
+        <div class="quadrant-card">
+          <div class="quadrant-name">Dominant · Private</div>
+          <div class="quadrant-brands" id="q-dp">Loading...</div>
+        </div>
+        <div class="quadrant-card highlight">
+          <div class="quadrant-name">Vulnerable · Private ✦</div>
+          <div class="quadrant-brands" id="q-vp">Loading...</div>
+        </div>
+        <div class="quadrant-card">
+          <div class="quadrant-name">Dominant · Collective</div>
+          <div class="quadrant-brands" id="q-dc">Loading...</div>
+        </div>
+        <div class="quadrant-card">
+          <div class="quadrant-name">Vulnerable · Collective</div>
+          <div class="quadrant-brands" id="q-vc">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel-right">
+
+    <!-- Score display -->
+    <div class="score-block" id="score-block">
+      <div class="score-block-header">
+        <span class="score-block-label">Selected Brand</span>
+        <span class="selected-brand-pill" id="selected-pill">— Select a brand</span>
+      </div>
+
+      <div id="empty-state" class="empty-state">
+        <div class="empty-state-icon">◎</div>
+        <div class="empty-state-text">Click any brand on the map or in the sidebar to see its strategic position analysis.</div>
+      </div>
+
+      <div id="brand-detail" style="display:none;">
+        <div class="score-row">
+          <div class="score-item">
+            <div class="score-item-label">X Score</div>
+            <div class="score-num" id="score-x">—</div>
+            <div class="score-axis-name" id="score-x-label">—</div>
+            <div class="score-bar-track"><div class="score-bar-fill" id="bar-x" style="width:0%"></div></div>
+          </div>
+          <div class="score-item">
+            <div class="score-item-label">Y Score</div>
+            <div class="score-num" id="score-y">—</div>
+            <div class="score-axis-name" id="score-y-label">—</div>
+            <div class="score-bar-track"><div class="score-bar-fill" id="bar-y" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commentary -->
+    <div class="commentary-block" id="commentary-block">
+      <div class="commentary-label">Agent 4 (Critic) Execution Log</div>
+      <div id="commentary-empty" style="font-size:11px; color:var(--text-tertiary); font-style:italic; font-family:'Cormorant Garamond',serif; line-height:1.6;">
+        Select a brand to read the AI's reasoning for its position on both axes.
+      </div>
+      <div id="commentary-content" style="display:none;">
+        <div class="commentary-quote" id="commentary-quote">—</div>
+        <div class="reasoning-list">
+          <div class="reasoning-row">
+            <span class="reasoning-tag tag-x">Agent 3 X</span>
+            <span class="reasoning-text" id="reasoning-x">—</span>
+          </div>
+          <div class="reasoning-row">
+            <span class="reasoning-tag tag-y">Agent 3 Y</span>
+            <span class="reasoning-text" id="reasoning-y">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<script>
+// --- INJECTED DYNAMIC DATA ---
+const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
+const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
+const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
+
+// ── RENDER BRAND NODES ──
+const svg = document.getElementById('brands-group');
+brands.forEach((b, i) => {
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("class", "brand-node");
+  g.setAttribute("data-brand", b.name);
+  g.style.cursor = "pointer";
+
+  if (b.isVaro) {
+    g.innerHTML = `
+      <circle cx="${b.cx}" cy="${b.cy}" r="20" fill="rgba(201,169,110,0.04)"/>
+      <circle cx="${b.cx}" cy="${b.cy}" r="13" fill="rgba(201,169,110,0.07)"/>
+      <circle cx="${b.cx}" cy="${b.cy}" r="26" fill="none" stroke="rgba(201,169,110,0.1)" stroke-width="1" stroke-dasharray="3,4"/>
+      <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(16,12,6,0.85)" stroke="${b.color}" stroke-width="1.5"/>
+      <circle cx="${b.cx}" cy="${b.cy}" r="4.5" fill="${b.color}" filter="url(#glow-gold)"/>
+      <text x="${b.cx}" y="${b.cy-14}" font-family="Cormorant Garamond,serif" font-size="10.5" font-style="italic" font-weight="400" letter-spacing="2" fill="rgba(201,169,110,0.85)" text-anchor="middle">VARŌ</text>
+    `;
+  } else {
+    g.innerHTML = `
+      <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(18,22,30,0.7)" stroke="${b.color}" stroke-width="1.2" opacity="0.85"/>
+      <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" filter="url(#glow-sm)" opacity="0.9"/>
+      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name.length > 12 ? b.name.split(' ').map(w=>w[0]).join('') : b.name.toUpperCase()}</text>
+    `;
+  }
+
+  g.addEventListener('mouseenter', (e) => showTooltip(e, b));
+  g.addEventListener('mousemove', (e) => moveTooltip(e));
+  g.addEventListener('mouseleave', () => hideTooltip());
+  g.addEventListener('click', () => selectBrand(b.name));
+  svg.appendChild(g);
+});
+
+// ── POPULATE QUADRANTS DYNAMICALLY ──
+let qDP = [], qVP = [], qDC = [], qVC = [];
+brands.forEach(b => {
+    let s = scores[b.name];
+    if(s.x < 5 && s.y < 5) qDC.push(b.name);
+    else if(s.x < 5 && s.y >= 5) qDP.push(b.name);
+    else if(s.x >= 5 && s.y < 5) qVC.push(b.name);
+    else qVP.push(b.name);
+});
+document.getElementById('q-dc').textContent = qDC.join(", ") || "Empty";
+document.getElementById('q-dp').textContent = qDP.join(", ") || "Empty";
+document.getElementById('q-vc').textContent = qVC.join(", ") || "Empty";
+document.getElementById('q-vp').textContent = qVP.join(", ") || "Empty";
+
+// ── BRAND LIST ──
+const brandListEl = document.getElementById('brand-list');
+brands.forEach(b => {
+  const s = scores[b.name];
+  const item = document.createElement('div');
+  item.className = 'brand-item active';
+  item.dataset.brand = b.name;
+  item.innerHTML = `
+    <div class="brand-dot" style="background:${b.color}"></div>
+    <span class="brand-item-name">${b.name}</span>
+    <span class="brand-coords">${s.x} · ${s.y}</span>
+  `;
+  item.addEventListener('click', () => selectBrand(b.name));
+  brandListEl.appendChild(item);
+});
+
+// ── SELECTION ──
+const pulseRing = document.getElementById('pulse-ring');
+
+function selectBrand(name) {
+  const b = brands.find(br => br.name === name);
+  const s = scores[name];
+  const c = commentary[name];
+
+  document.querySelectorAll('.brand-item').forEach(el => {
+    el.classList.remove('selected-focus');
+    if (el.dataset.brand === name) el.classList.add('selected-focus');
+  });
+
+  document.querySelectorAll('.brand-node').forEach(node => {
+    node.style.opacity = node.dataset.brand === name ? '1' : '0.22';
+  });
+
+  pulseRing.setAttribute('cx', b.cx);
+  pulseRing.setAttribute('cy', b.cy);
+  pulseRing.setAttribute('opacity', '1');
+
+  document.getElementById('selected-pill').textContent = name;
+  document.getElementById('score-block').classList.add('has-selection');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('brand-detail').style.display = 'block';
+
+  document.getElementById('score-x').textContent = s.x;
+  document.getElementById('score-y').textContent = s.y;
+  document.getElementById('score-x-label').textContent = s.xLabel;
+  document.getElementById('score-y-label').textContent = s.yLabel;
+  document.getElementById('bar-x').style.width = (s.x * 10) + '%';
+  document.getElementById('bar-y').style.width = (s.y * 10) + '%';
+
+  document.getElementById('commentary-empty').style.display = 'none';
+  document.getElementById('commentary-content').style.display = 'block';
+  document.getElementById('commentary-quote').textContent = c.quote;
+  document.getElementById('reasoning-x').textContent = c.rx;
+  document.getElementById('reasoning-y').textContent = c.ry;
+}
+
+// ── TOOLTIP ──
+const tooltip = document.getElementById('tooltip');
+const mapContainer = document.getElementById('map-container');
+
+function showTooltip(e, b) {
+  const s = scores[b.name];
+  document.getElementById('tt-brand').textContent = b.name;
+  document.getElementById('tt-x').textContent = s.x + ' / 10';
+  document.getElementById('tt-y').textContent = s.y + ' / 10';
+  tooltip.classList.add('visible');
+}
+function moveTooltip(e) {
+  const rect = mapContainer.getBoundingClientRect();
+  let left = e.clientX - rect.left + 16;
+  let top = e.clientY - rect.top - 12;
+  if (left + 180 > rect.width) left -= 196;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+// ── RESET ──
+document.getElementById('map-svg').addEventListener('click', (e) => {
+  if (e.target.tagName === 'rect' || e.target.tagName === 'line' || e.target.tagName === 'text') {
+    document.querySelectorAll('.brand-node').forEach(n => { n.style.opacity = '1'; });
+    document.querySelectorAll('.brand-item').forEach(el => el.classList.remove('selected-focus'));
+    pulseRing.setAttribute('opacity', '0');
+    pulseRing.setAttribute('cx', '-100');
+    document.getElementById('score-block').classList.remove('has-selection');
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('brand-detail').style.display = 'none';
+    document.getElementById('selected-pill').textContent = '— Select a brand';
+    document.getElementById('commentary-empty').style.display = 'block';
+    document.getElementById('commentary-content').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
+"""
+
+# INJECT PYTHON DATA INTO JAVASCRIPT
+html_with_live_data = custom_html_template.replace(
+    "__DYNAMIC_BRANDS_PLACEHOLDER__", json.dumps(js_brands)
+).replace(
+    "__DYNAMIC_SCORES_PLACEHOLDER__", json.dumps(js_scores)
+).replace(
+    "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
+)
+
+components.html(html_with_live_data, height=950, scrolling=True)
