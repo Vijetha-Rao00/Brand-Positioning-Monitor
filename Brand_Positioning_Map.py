@@ -1,12 +1,10 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import json
 import os
 
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
-# Hide Streamlit's default padding and UI chrome
 st.markdown("""
     <style>
         .block-container { padding: 0rem; max-width: 100%; }
@@ -15,12 +13,30 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. DYNAMIC DATA INJECTION (PYTHON TO JS BRIDGE) ---
-scores_path = "data/scores/final_brand_scores.json"
-hist_path = "data/scores/historical_scores.json"
+
+# --- 2. OS-AGNOSTIC DATA ROUTING ---
+# This fixes the Windows vs Linux case-sensitivity issue for cloud deployment
+def get_valid_path(*paths):
+    for path in paths:
+        if os.path.exists(path):
+            return path
+    return paths[0]
+
+
+scores_path = get_valid_path("data/scores/final_brand_scores.json", "Data/Scores/final_brand_scores.json",
+                             "Data/scores/final_brand_scores.json")
+hist_path = get_valid_path("data/scores/historical_scores.json", "Data/Scores/historical_scores.json",
+                           "Data/scores/historical_scores.json")
+kb_path = get_valid_path("data/knowledge_base/brand_data.json", "Data/Knowledge_base/brand_data.json",
+                         "Data/knowledge_base/brand_data.json")
 
 if not os.path.exists(scores_path):
-    st.error(f"Error: {scores_path} not found. Run critic.py first.")
+    st.error(f"Cloud Deployment Error: The Linux server cannot find the scores file.")
+    st.write("Here is what the server currently sees in the main folder:")
+    st.write(os.listdir())
+    st.write("Here is what it sees inside the Data folder (if it exists):")
+    st.write(os.listdir("Data") if os.path.exists("Data") else os.listdir("data") if os.path.exists(
+        "data") else "No data folder found.")
     st.stop()
 
 with open(scores_path, "r", encoding="utf-8") as f:
@@ -32,7 +48,7 @@ if os.path.exists(hist_path):
 else:
     hist_scores = {}
 
-# Claude's UI Colors
+# Apple System Colors
 color_map = {
     "Chanel": "#e8e4dc", "Hermès": "#d4a090", "YSL": "#c4a0d4", "Maison Margiela": "#b8a0d4",
     "Jean Paul Gaultier": "#90c0d4", "Viktor & Rolf": "#90d4a8", "Mancera": "#d4d090",
@@ -47,23 +63,17 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    # SVG Math: Map 0-10 scores to 760x440 pixel canvas
-    # X: 0 is left (0px), 10 is right (760px)
     cx = (x / 10.0) * 760
-    # Y: 0 is bottom (440px), 10 is top (0px)
     cy = ((10.0 - y) / 10.0) * 440
 
-    # Historical Math
     hx, hy = None, None
     if brand in hist_scores:
         hx = (hist_scores[brand].get("x_score", 5) / 10.0) * 760
         hy = ((10.0 - hist_scores[brand].get("y_score", 5)) / 10.0) * 440
 
     js_brands.append({
-        "name": brand,
-        "color": color_map.get(brand, "#ffffff"),
-        "cx": round(cx, 1),
-        "cy": round(cy, 1),
+        "name": brand, "color": color_map.get(brand, "#ffffff"),
+        "cx": round(cx, 1), "cy": round(cy, 1),
         "x21": round(hx, 1) if hx is not None else None,
         "y21": round(hy, 1) if hy is not None else None,
         "isVaro": (brand == "VARŌ" or brand == "VARO")
@@ -73,8 +83,7 @@ for brand, data in live_scores.items():
     y_label = "Private Truth" if y >= 5 else "Collective Myth"
 
     js_scores[brand] = {
-        "x": round(x, 2), "y": round(y, 2),
-        "xLabel": x_label, "yLabel": y_label
+        "x": round(x, 2), "y": round(y, 2), "xLabel": x_label, "yLabel": y_label
     }
 
     js_commentary[brand] = {
@@ -131,7 +140,6 @@ custom_html_template = """
   }
   body > * { position: relative; z-index: 1; }
 
-  /* NAV */
   nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 1.25rem 2.5rem;
@@ -143,21 +151,13 @@ custom_html_template = """
   .nav-brand { display: flex; flex-direction: column; gap: 1px; }
   .nav-brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.08em; color: var(--white); }
   .nav-brand-sub { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 300; }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
-  .nav-links a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; font-weight: 300; }
-  .nav-links a:hover { color: var(--white); }
-  .nav-links a.active { color: var(--gold); }
-  .nav-pill { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 16px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
-  .nav-pill:hover { border-color: var(--gold-dim); color: var(--gold); background: rgba(201,169,110,0.06); }
 
-  /* LAYOUT */
   .layout {
     display: grid;
     grid-template-columns: 260px 1fr 320px;
     min-height: calc(100vh - 65px);
   }
 
-  /* LEFT SIDEBAR */
   .sidebar-left {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem 1.25rem;
@@ -174,10 +174,9 @@ custom_html_template = """
 
   .glass-card {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-radius: var(--radius); backdrop-filter: var(--blur);
   }
 
-  /* Brand list */
   .brand-list { display: flex; flex-direction: column; gap: 3px; }
   .brand-item {
     display: flex; align-items: center; gap: 9px;
@@ -186,34 +185,28 @@ custom_html_template = """
     border: 1px solid transparent;
   }
   .brand-item:hover { background: var(--glass-hover); }
-  .brand-item.active { background: var(--glass-bg); border-color: var(--glass-border); }
   .brand-item.selected-focus { background: rgba(201,169,110,0.06); border-color: var(--gold-dim); }
   .brand-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; letter-spacing: 0.03em; transition: color 0.15s; }
-  .brand-item.active .brand-item-name,
-  .brand-item.selected-focus .brand-item-name { color: var(--white); }
+  .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; transition: color 0.15s; }
   .brand-item.selected-focus .brand-item-name { color: var(--gold); }
-  .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; white-space: nowrap; }
+  .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; }
   .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
 
-  /* Toggles */
   .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
   .toggle-row:last-child { border-bottom: none; }
-  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.03em; }
+  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); }
   .toggle { width: 34px; height: 19px; background: rgba(255,255,255,0.08); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; }
   .toggle.on { background: rgba(201,169,110,0.25); border-color: var(--gold-dim); }
   .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
   .toggle.on::after { left: 17px; background: var(--gold); }
 
-  /* Axis info */
   .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
-  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; font-weight: 400; }
+  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; }
   .axis-poles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
   .axis-pole { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
   .axis-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), var(--gold-dim), var(--glass-border)); margin: 0 8px; }
-  .axis-desc { font-size: 10px; color: var(--text-tertiary); line-height: 1.5; font-style: italic; font-family: 'Cormorant Garamond', serif; }
+  .axis-desc { font-size: 10px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; }
 
-  /* MAIN MAP */
   .main-map {
     border-right: 1px solid var(--glass-border);
     padding: 1.5rem;
@@ -223,29 +216,16 @@ custom_html_template = """
   }
 
   .map-header { display: flex; align-items: flex-start; justify-content: space-between; }
-  .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; letter-spacing: 0.04em; color: var(--white); }
+  .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--white); }
   .map-subtitle { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.06em; font-weight: 300; }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-  .btn-ghost { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 14px; border: 1px solid var(--glass-border); border-radius: 100px; color: var(--text-secondary); background: var(--glass-bg); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 300; }
-  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
-  .btn-gold { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px; border: 1px solid var(--gold-dim); border-radius: 100px; color: var(--gold); background: rgba(201,169,110,0.08); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 400; }
-  .btn-gold:hover { background: rgba(201,169,110,0.15); border-color: var(--gold); }
 
-  /* MAP SVG container */
   .map-container {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
     border-radius: var(--radius); backdrop-filter: var(--blur);
     padding: 1.5rem; position: relative; overflow: hidden;
   }
-  .map-container::before {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(201,169,110,0.025) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .map-svg-wrapper { width: 100%; }
   .map-canvas { width: 100%; height: 100%; }
 
-  /* Tooltip */
   .tooltip {
     position: absolute;
     background: rgba(10,13,20,0.95); backdrop-filter: blur(20px);
@@ -254,46 +234,32 @@ custom_html_template = """
     transition: opacity 0.12s; z-index: 50; min-width: 150px;
   }
   .tooltip.visible { opacity: 1; }
-  .tooltip-brand { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400; color: var(--white); margin-bottom: 5px; letter-spacing: 0.04em; }
-  .tooltip-row { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 2px; gap: 12px; }
+  .tooltip-brand { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400; color: var(--white); margin-bottom: 5px; }
+  .tooltip-row { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); margin-bottom: 2px; gap: 12px; }
   .tooltip-val { color: var(--text-secondary); }
 
-  /* Quadrant summary */
   .quadrant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .quadrant-card {
     padding: 12px; border-radius: var(--radius-sm);
     border: 1px solid var(--glass-border); background: var(--glass-bg);
-    backdrop-filter: var(--blur); cursor: pointer; transition: all 0.2s;
-    position: relative; overflow: hidden;
+    cursor: pointer; transition: all 0.2s;
   }
-  .quadrant-card:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.15); }
   .quadrant-card.highlight { border-color: var(--gold-dim); background: rgba(201,169,110,0.05); }
   .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
   .quadrant-brands { font-size: 11px; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
-  .quadrant-count { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; color: var(--white-faint); float: right; margin-top: -2px; }
 
-  /* Whitespace alert */
+  .drift-section { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 1.25rem; }
+  .drift-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .drift-title { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); }
+
   .whitespace-alert {
     background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
     border: 1px solid var(--gold-dim); border-radius: var(--radius);
     padding: 1.1rem 1.25rem; display: flex; gap: 0.9rem; align-items: flex-start;
   }
-  .alert-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; color: var(--gold); margin-top: 2px; }
   .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; font-weight: 400; }
   .alert-text { font-family: 'Cormorant Garamond', serif; font-size: 12.5px; font-style: italic; color: var(--text-secondary); line-height: 1.7; }
-  .alert-brand-tag { display: inline-block; padding: 1px 7px; border-radius: 4px; background: rgba(201,169,110,0.1); color: var(--gold); font-style: normal; font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.07em; margin: 0 1px; }
 
-  /* Empty state */
-  .empty-state { text-align: center; padding: 2rem 1rem; }
-  .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
-  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 2px; }
-
-  /* RIGHT PANEL */
   .panel-right {
     padding: 1.5rem 1.25rem;
     background: rgba(8,10,15,0.5);
@@ -305,44 +271,23 @@ custom_html_template = """
   .score-block {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
     border-radius: var(--radius); padding: 1.25rem;
-    transition: border-color 0.3s;
   }
   .score-block.has-selection { border-color: var(--gold-dim); }
   .score-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
   .score-block-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
   .selected-brand-pill {
-    font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400;
+    font-family: 'Cormorant Garamond', serif; font-size: 14px;
     padding: 3px 12px; border-radius: 100px;
-    background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim);
-    color: var(--gold); letter-spacing: 0.06em;
-    transition: all 0.3s;
+    background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); color: var(--gold);
   }
+
   .score-row { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
   .score-item { flex: 1; }
   .score-item-label { font-size: 8.5px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
-  .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; transition: all 0.4s; }
+  .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; }
   .score-axis-name { font-size: 9.5px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; margin-top: 2px; }
   .score-bar-track { width: 100%; height: 2.5px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 8px; }
   .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
-
-  .position-insight {
-    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
-    border: 1px solid rgba(201,169,110,0.15);
-    border-radius: var(--radius-sm);
-    padding: 1rem;
-    margin-top: 0.75rem;
-  }
-  .position-insight-header {
-    font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--gold); margin-bottom: 6px; font-weight: 400;
-  }
-  .position-insight-quadrant {
-    font-family: 'Cormorant Garamond', serif; font-size: 13px; font-style: italic;
-    color: var(--white); margin-bottom: 8px; letter-spacing: 0.02em;
-  }
-  .position-insight-text {
-    font-size: 11px; color: var(--text-secondary); line-height: 1.65; font-weight: 300;
-  }
 
   .commentary-block {
     background: var(--glass-bg); border: 1px solid var(--glass-border);
@@ -354,7 +299,6 @@ custom_html_template = """
     font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 300;
     font-style: italic; color: var(--text-secondary); line-height: 1.75;
     border-left: 1px solid var(--gold-dim); padding-left: 0.9rem;
-    transition: all 0.3s;
   }
   .reasoning-list { display: flex; flex-direction: column; gap: 7px; }
   .reasoning-row { display: flex; gap: 8px; align-items: flex-start; }
@@ -362,6 +306,10 @@ custom_html_template = """
   .tag-x { background: rgba(201,169,110,0.1); color: var(--gold); border: 1px solid rgba(201,169,110,0.2); }
   .tag-y { background: rgba(160,185,220,0.1); color: #a0b9dc; border: 1px solid rgba(160,185,220,0.2); }
   .reasoning-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.6; font-weight: 300; }
+
+  .empty-state { text-align: center; padding: 2rem 1rem; }
+  .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
+  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -372,8 +320,7 @@ custom_html_template = """
     <span class="nav-brand-sub">Luxury Fragrance Intelligence</span>
   </div>
   <ul class="nav-links">
-    <li><a href="#" class="active">Map</a></li>
-    <li><a href="#">About</a></li>
+    <li><a href="#" class="active">Agentic Scoring Map</a></li>
   </ul>
 </nav>
 
@@ -386,24 +333,22 @@ custom_html_template = """
       <div class="brand-list" id="brand-list"></div>
     </div>
     <div>
-      <div class="section-label">Axes</div>
+      <div class="section-label">Axes Matrix</div>
       <div class="axis-block">
-        <div class="axis-name">X — Voice Register</div>
+        <div class="axis-name">X — Tone of Voice</div>
         <div class="axis-poles">
           <span class="axis-pole">Dominance</span>
           <div class="axis-line"></div>
           <span class="axis-pole">Vulnerability</span>
         </div>
-        <div class="axis-desc">"Does the brand speak as a monument or as a confidant?"</div>
       </div>
       <div class="axis-block">
-        <div class="axis-name">Y — Address</div>
+        <div class="axis-name">Y — Narrative Scope</div>
         <div class="axis-poles">
           <span class="axis-pole">Collective</span>
           <div class="axis-line"></div>
           <span class="axis-pole">Private</span>
         </div>
-        <div class="axis-desc">"Does it build a shared myth or whisper to one person?"</div>
       </div>
     </div>
   </aside>
@@ -424,7 +369,6 @@ custom_html_template = """
           <pattern id="grid" width="76" height="44" patternUnits="userSpaceOnUse">
             <path d="M 76 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.028)" stroke-width="0.5"/>
           </pattern>
-          <filter id="glow-sm"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
           <filter id="glow-gold"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         </defs>
 
@@ -476,12 +420,21 @@ custom_html_template = """
         </div>
       </div>
     </div>
+
+    <div class="whitespace-alert" style="margin-top: 20px;">
+      <div class="alert-icon">◈</div>
+      <div>
+        <div class="alert-title">Agent 4 Verified White Space</div>
+        <div class="alert-text">
+          VARŌ is successfully positioned in the furthest extreme of the Vulnerable / Private quadrant. Competitors mapped strictly to Dominance, leaving intimacy highly unsaturated.
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- RIGHT PANEL -->
   <aside class="panel-right">
 
-    <!-- Score display -->
     <div class="score-block" id="score-block">
       <div class="score-block-header">
         <span class="score-block-label">Selected Brand</span>
@@ -490,7 +443,7 @@ custom_html_template = """
 
       <div id="empty-state" class="empty-state">
         <div class="empty-state-icon">◎</div>
-        <div class="empty-state-text">Click any brand on the map or in the sidebar to see its strategic position analysis.</div>
+        <div class="empty-state-text">Click any brand node on the map to audit the AI execution logic.</div>
       </div>
 
       <div id="brand-detail" style="display:none;">
@@ -515,17 +468,17 @@ custom_html_template = """
     <div class="commentary-block" id="commentary-block">
       <div class="commentary-label">Agent 4 (Critic) Execution Log</div>
       <div id="commentary-empty" style="font-size:11px; color:var(--text-tertiary); font-style:italic; font-family:'Cormorant Garamond',serif; line-height:1.6;">
-        Select a brand to read the AI's reasoning for its position on both axes.
+        Select a brand to read the AI's reasoning for its position.
       </div>
       <div id="commentary-content" style="display:none;">
         <div class="commentary-quote" id="commentary-quote">—</div>
-        <div class="reasoning-list">
+        <div class="reasoning-list" style="margin-top: 15px;">
           <div class="reasoning-row">
-            <span class="reasoning-tag tag-x">Agent 3 X</span>
+            <span class="reasoning-tag tag-x">Agent 3 (X)</span>
             <span class="reasoning-text" id="reasoning-x">—</span>
           </div>
           <div class="reasoning-row">
-            <span class="reasoning-tag tag-y">Agent 3 Y</span>
+            <span class="reasoning-tag tag-y">Agent 3 (Y)</span>
             <span class="reasoning-text" id="reasoning-y">—</span>
           </div>
         </div>
@@ -536,7 +489,7 @@ custom_html_template = """
 </div>
 
 <script>
-// --- INJECTED DYNAMIC DATA ---
+// --- INJECTED DYNAMIC DATA FROM PYTHON ---
 const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
@@ -561,8 +514,8 @@ brands.forEach((b, i) => {
   } else {
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(18,22,30,0.7)" stroke="${b.color}" stroke-width="1.2" opacity="0.85"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" filter="url(#glow-sm)" opacity="0.9"/>
-      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name.length > 12 ? b.name.split(' ').map(w=>w[0]).join('') : b.name.toUpperCase()}</text>
+      <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" opacity="0.9"/>
+      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name}</text>
     `;
   }
 
@@ -592,7 +545,7 @@ const brandListEl = document.getElementById('brand-list');
 brands.forEach(b => {
   const s = scores[b.name];
   const item = document.createElement('div');
-  item.className = 'brand-item active';
+  item.className = 'brand-item';
   item.dataset.brand = b.name;
   item.innerHTML = `
     <div class="brand-dot" style="background:${b.color}"></div>
@@ -684,7 +637,6 @@ document.getElementById('map-svg').addEventListener('click', (e) => {
 </html>
 """
 
-# INJECT PYTHON DATA INTO JAVASCRIPT
 html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_BRANDS_PLACEHOLDER__", json.dumps(js_brands)
 ).replace(
@@ -693,4 +645,4 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-components.html(html_with_live_data, height=950, scrolling=True)
+st.html(html_with_live_data)
