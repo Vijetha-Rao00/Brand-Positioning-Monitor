@@ -1,12 +1,11 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import json
 import os
 
-# --- 1. STREAMLIT PAGE CONFIG ---
+# --- STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
-# Hide Streamlit's default UI and force iframe to absolute fullscreen
+# --- FULL-SCREEN IFRAME HACK ---
 st.markdown("""
     <style>
         .block-container { padding: 0rem !important; max-width: 100% !important; margin: 0 !important; }
@@ -25,7 +24,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- 2. OS-AGNOSTIC DATA ROUTING ---
+# --- DATA ROUTING ---
 def get_valid_path(*paths):
     for path in paths:
         if os.path.exists(path):
@@ -56,7 +55,7 @@ else:
 # PageCoder Palette
 color_map = {
     "Chanel": "#ffffff", "Hermès": "#fca5a5", "YSL": "#fcd34d", "Maison Margiela": "#c4b5fd",
-    "Jean Paul Gaultier": "#93c5fd", "Viktor & Rolf": "#f9a8d4", "Mancera": "#fdba74",
+    "Jean Paul Gaultier": "#38bdf8", "Viktor & Rolf": "#f9a8d4", "Mancera": "#fdba74",
     "Creed": "#cbd5e1", "Byredo": "#a7f3d0", "VARŌ": "#00e599", "VARO": "#00e599"
 }
 
@@ -80,6 +79,7 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
+    # SVG Math mapped to viewBox="0 0 800 400"
     cx = 50 + (x / 10.0) * 700
     cy = 40 + ((10.0 - y) / 10.0) * 320
 
@@ -118,7 +118,7 @@ for brand, data in live_scores.items():
         "drift": drift_insights.get(brand, "No drift data.")
     }
 
-# --- 3. THE HTML TEMPLATE WITH CINEMATIC SCROLL ---
+# --- THE HTML TEMPLATE ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
@@ -130,339 +130,315 @@ custom_html_template = """
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-/* SCOPED VARIABLES */
 :root {
-  --bpm-bg: #090a0f;
-  --bpm-panel: #13151a;
-  --bpm-border: #1e212b;
-  --bpm-text: #f8f9fa;
-  --bpm-muted: #8b949e;
-  --bpm-accent: #00e599; 
+  --bg: #090a0f;
+  --panel: #13151a;
+  --border: #1e212b;
+  --text-main: #f8f9fa;
+  --text-muted: #8b949e;
+  --accent: #00e599; 
 }
 
-/* RESET & SCOPE */
-.bpm-app {
-  background-color: var(--bpm-bg);
-  color: var(--bpm-text);
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* The body is 200vh so you can scroll exactly one screen down */
+body {
   font-family: 'Inter', sans-serif;
-  min-height: 100vh;
-  margin: 0; padding: 0;
+  background-color: var(--bg);
+  color: var(--text-main);
+  margin: 0;
+  height: 200vh; 
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-.bpm-app * { box-sizing: border-box; }
-.bpm-serif { font-family: 'Instrument Serif', serif; font-weight: normal; }
-.bpm-mono { font-family: 'JetBrains Mono', monospace; }
+::-webkit-scrollbar { display: none; }
 
-/* NAV - PINNED TO TOP */
-.bpm-nav {
+.serif { font-family: 'Instrument Serif', serif; font-weight: normal; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* FIXED NAV */
+nav {
   position: fixed; top: 0; left: 0; width: 100vw; z-index: 1000;
   display: flex; align-items: center; justify-content: space-between;
   padding: 24px 40px;
   background: linear-gradient(to bottom, rgba(9,10,15,1) 0%, rgba(9,10,15,0) 100%);
-  pointer-events: none; /* Let scroll pass through */
+  pointer-events: none;
 }
-.bpm-nav > * { pointer-events: auto; } /* Keep buttons clickable */
-
-.bpm-logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
-.bpm-nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--bpm-muted); }
-.bpm-nav-btn {
-  border: 1px solid var(--bpm-accent); color: var(--bpm-accent);
+nav > * { pointer-events: auto; }
+.logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+.nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--text-muted); }
+.nav-btn {
+  border: 1px solid var(--accent); color: var(--accent);
   padding: 8px 16px; border-radius: 4px; font-size: 13px; cursor: pointer;
   background: rgba(0, 229, 153, 0.05); transition: 0.2s;
 }
-.bpm-nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
+.nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
 
-/* FIXED HERO BACKGROUND (THE PARALLAX TRICK) */
-.bpm-hero-bg {
-  position: fixed; 
-  top: 0; left: 0; 
-  width: 100vw; height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1; /* Lowest layer */
-  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.06), transparent 50%), var(--bpm-bg);
+/* FIXED HERO */
+.hero-section {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 1; text-align: center;
+  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.05), transparent 50%), var(--bg);
 }
-.bpm-hero-text {
-  text-align: center;
-  padding: 0 20px;
-}
-.bpm-eyebrow {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px;
-  color: var(--bpm-muted); letter-spacing: 0.3em; text-transform: uppercase;
-  margin-bottom: 24px;
-}
-.bpm-hero-text h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; margin-top: 0; color: #fff; }
-.bpm-hero-text p { font-size: 16px; color: var(--bpm-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 24px; }
+.hero-section h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; margin-top: 0; color: #fff; }
+.hero-section p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-/* CONTENT WRAPPER - SLIDES UP OVER HERO */
-.bpm-content-wrapper {
-  position: relative;
-  z-index: 10;
-  margin-top: 100vh; /* Pushes content precisely one screen down initially */
-  background-color: var(--bpm-bg); /* Opaque background covers the hero */
+/* THE SCROLLING DASHBOARD WRAPPER */
+.dashboard-wrapper {
+  position: absolute;
+  top: 100vh; /* Sits exactly below the hero */
+  left: 0; width: 100vw; height: 100vh; /* Locks to screen height */
+  background-color: var(--bg);
   border-top: 1px solid rgba(255,255,255,0.05);
-  padding-top: 60px; padding-bottom: 100px;
+  z-index: 10;
+  display: flex;
+  padding: 80px 40px 40px 40px; /* Space for nav */
+  gap: 40px;
+  overflow: hidden; /* No scrolling inside dashboard */
   box-shadow: 0 -30px 80px rgba(0, 0, 0, 0.95);
 }
 
-/* TOGGLE CONTROLS */
-.bpm-controls { display: flex; justify-content: center; margin-bottom: 60px; }
-.bpm-pill-container {
-  background: var(--bpm-panel); border: 1px solid var(--bpm-border);
-  border-radius: 100px; display: flex; padding: 4px; gap: 4px;
+/* LEFT COLUMN: CONTROLS */
+.left-col {
+  width: 280px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 24px;
 }
-.bpm-pill-btn {
-  padding: 8px 24px; font-size: 13px; border-radius: 100px;
-  cursor: pointer; color: var(--bpm-muted); transition: 0.2s; font-weight: 500;
+
+/* CUSTOM DROPDOWN */
+.custom-dropdown { position: relative; width: 100%; z-index: 50; }
+.dd-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; font-weight: 600; }
+.dd-header {
+  padding: 14px 16px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; color: var(--text-main); font-weight: 500; font-size: 14px;
+  display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
 }
-.bpm-pill-btn.active { background: rgba(0, 229, 153, 0.1); color: var(--bpm-accent); }
+.dd-header:hover { border-color: rgba(255,255,255,0.2); }
+.dd-list {
+  position: absolute; top: 100%; left: 0; width: 100%;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; margin-top: 8px; opacity: 0; pointer-events: none;
+  transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 300px; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.dd-list.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.dd-item { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.1s; }
+.dd-item:hover { background: rgba(255,255,255,0.05); }
+.item-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.item-name { font-size: 13px; font-weight: 500; color: var(--text-main); }
 
-/* MAP CONTAINER */
-.bpm-map-section { max-width: 1000px; margin: 0 auto; position: relative; padding: 0 20px; }
-#bpm-svg { width: 100%; height: auto; display: block; overflow: visible; }
-.bpm-axis-line { stroke: #2a2e38; stroke-width: 1; }
-.bpm-axis-label { fill: #4a505e; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
-.bpm-node { cursor: pointer; transition: transform 0.2s ease, opacity 0.3s ease; transform-origin: center; }
-.bpm-node:hover { transform: scale(1.15); }
+/* DRIFT TOGGLE */
+.toggle-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+.toggle-label { font-size: 13px; font-weight: 500; color: var(--text-main); }
+.toggle-btn {
+  width: 44px; height: 24px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 100px; position: relative; cursor: pointer; transition: 0.3s;
+}
+.toggle-btn.active { background: rgba(0, 229, 153, 0.2); border-color: var(--accent); }
+.toggle-btn::after {
+  content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--text-muted); top: 3px; left: 3px; transition: 0.3s;
+}
+.toggle-btn.active::after { left: 23px; background: var(--accent); }
 
-/* CUSTOM TOOLTIP */
-.bpm-tooltip {
-  position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--bpm-border);
-  padding: 12px; border-radius: 8px; pointer-events: none; opacity: 0;
+/* QUADRANT SUMMARY (Left Col) */
+.quadrant-summary { display: flex; flex-direction: column; gap: 8px; }
+.q-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; transition: 0.3s; }
+.q-card.active-glow { border-color: rgba(0, 229, 153, 0.5); background: rgba(0, 229, 153, 0.05); box-shadow: 0 4px 20px rgba(0, 229, 153, 0.1); }
+.q-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+.q-card.active-glow .q-title { color: var(--accent); }
+.q-desc { font-size: 12px; color: var(--text-main); line-height: 1.5; opacity: 0.6; }
+.q-card.active-glow .q-desc { opacity: 1; }
+
+/* CENTER COLUMN: MAP */
+.map-col {
+  flex-grow: 1; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02), transparent 70%);
+  border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+}
+#bpm-svg { width: 100%; height: 100%; max-height: 100%; overflow: visible; }
+.axis-line { stroke: #2a2e38; stroke-width: 1; }
+.axis-label { fill: #4a505e; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
+.brand-node { cursor: pointer; transition: transform 0.2s ease, opacity 0.3s ease; transform-origin: center; }
+.brand-node:hover { transform: scale(1.15); }
+
+/* BULLETPROOF TOOLTIP */
+.tooltip {
+  position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--border);
+  padding: 12px; border-radius: 8px; opacity: 0;
   transition: opacity 0.2s ease; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  pointer-events: none !important; /* CRITICAL: Prevents flicker */
 }
-.bpm-tt-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--bpm-text); border-bottom: 1px solid var(--bpm-border); padding-bottom: 6px; }
-.bpm-tt-row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px; font-size: 12px; color: var(--bpm-muted); }
-.bpm-tt-val { font-family: 'JetBrains Mono', monospace; color: var(--bpm-accent); }
+.tt-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.tt-row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px; font-size: 12px; color: var(--text-muted); }
+.tt-val { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
 
-/* GLOWING QUADRANTS GRID */
-.bpm-quadrants {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-  max-width: 1000px; margin: 40px auto 60px; padding: 0 20px;
+/* RIGHT COLUMN: SLIDING INSIGHT CARD */
+.insight-card {
+  position: absolute; right: 40px; top: 80px;
+  width: 360px; height: calc(100vh - 120px);
+  background: rgba(19, 21, 26, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border); border-radius: 16px; padding: 30px;
+  transform: translateX(120%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100; overflow-y: auto; box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; gap: 24px;
 }
-.bpm-q-card {
-  background: var(--bpm-panel); border: 1px solid var(--bpm-border);
-  border-radius: 12px; padding: 20px; transition: all 0.3s ease;
+.insight-card.open { transform: translateX(0); }
+.close-btn {
+  position: absolute; top: 20px; right: 20px; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--panel); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--text-muted); font-size: 12px; transition: 0.2s;
 }
-.bpm-q-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--bpm-muted); margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase; transition: color 0.3s; }
-.bpm-q-desc { font-size: 13px; color: var(--bpm-text); line-height: 1.5; opacity: 0.6; transition: opacity 0.3s; }
+.close-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-.bpm-q-card.active-glow {
-  border-color: rgba(0, 229, 153, 0.5); background: rgba(0, 229, 153, 0.05);
-  box-shadow: 0 10px 30px rgba(0, 229, 153, 0.1); transform: translateY(-4px);
-}
-.bpm-q-card.active-glow .bpm-q-title { color: var(--bpm-accent); }
-.bpm-q-card.active-glow .bpm-q-desc { opacity: 1; }
-
-/* DATA GRID */
-.bpm-data-grid {
-  max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 60px;
-  border-top: 1px solid var(--bpm-border); padding: 60px 20px;
-}
-
-/* LIST */
-.bpm-list-title { font-size: 12px; color: var(--bpm-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
-.bpm-brand-list { display: flex; flex-direction: column; gap: 4px; }
-.bpm-list-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: 0.2s;
-}
-.bpm-list-item:hover { background: var(--bpm-panel); }
-.bpm-list-item.active { background: var(--bpm-panel); border-color: var(--bpm-border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-.bpm-item-left { display: flex; align-items: center; gap: 12px; }
-.bpm-item-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
-.bpm-item-name { font-size: 14px; font-weight: 500; }
-.bpm-item-score { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--bpm-muted); }
-
-/* INSIGHTS */
-.bpm-insight-panel { display: none; animation: bpmFadeIn 0.4s ease; }
-@keyframes bpmFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.bpm-empty-state { text-align: center; color: var(--bpm-muted); margin-top: 60px; font-size: 15px; }
-.bpm-insight-header { margin-bottom: 24px; }
-.bpm-insight-brand { font-size: 48px; line-height: 1; margin-bottom: 8px; margin-top: 0; }
-.bpm-insight-coords { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--bpm-accent); }
-
-.bpm-info-block { margin-bottom: 32px; }
-.bpm-info-label { font-size: 11px; color: var(--bpm-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; font-weight: 600; }
-.bpm-info-text { font-size: 15px; line-height: 1.6; color: var(--bpm-text); }
-.bpm-info-quote { font-size: 20px; line-height: 1.5; color: var(--bpm-muted); border-left: 2px solid var(--bpm-border); padding-left: 20px; font-style: italic; }
-
-.bpm-code-box {
-  background: var(--bpm-panel); border: 1px solid var(--bpm-border);
-  border-radius: 8px; padding: 16px; margin-bottom: 12px;
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: var(--bpm-muted);
-}
-.bpm-code-box span { color: var(--bpm-accent); }
-
-/* BRIEFING */
-.bpm-briefing {
-  max-width: 1000px; margin: 40px auto 80px; border-top: 1px solid var(--bpm-border); padding: 60px 20px;
-}
-.bpm-briefing h2 { font-size: 40px; margin-bottom: 40px; text-align: center; margin-top: 0; color: #fff;}
-.bpm-b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-.bpm-b-col h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--bpm-text); margin-top:0;}
-.bpm-b-col p { font-size: 15px; color: var(--bpm-muted); line-height: 1.7; margin:0;}
-.bpm-b-full { background: var(--bpm-panel); border: 1px solid var(--bpm-border); padding: 32px; border-radius: 12px; }
-.bpm-b-full h3 { font-size: 18px; margin-bottom: 12px; color: var(--bpm-accent); margin-top:0;}
-.bpm-b-full p { font-size: 15px; color: var(--bpm-text); line-height: 1.7; margin:0;}
+.insight-brand { font-size: 42px; line-height: 1; margin-bottom: 4px; margin-top:0; }
+.insight-coords { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); margin-bottom: 24px; }
+.info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; font-weight: 600; }
+.info-quote { font-size: 18px; line-height: 1.5; color: var(--text-muted); border-left: 2px solid var(--border); padding-left: 16px; font-style: italic; }
+.code-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6; color: var(--text-muted); }
+.code-box span { color: var(--accent); }
+.info-text { font-size: 14px; line-height: 1.6; color: var(--text-main); }
 
 /* MOBILE RESPONSIVE */
 @media (max-width: 900px) {
-  .bpm-nav { padding: 20px; }
-  .bpm-nav-links, .bpm-nav-btn { display: none; }
-  .bpm-hero-text h1 { font-size: 40px; }
-  .bpm-quadrants { grid-template-columns: 1fr 1fr; }
-  .bpm-data-grid { grid-template-columns: 1fr; gap: 40px; }
-  .bpm-b-grid { grid-template-columns: 1fr; }
-  .bpm-insight-brand { font-size: 36px; }
-}
-@media (max-width: 500px) {
-  .bpm-quadrants { grid-template-columns: 1fr; }
+  body { height: auto; overflow-y: auto; }
+  .dashboard-wrapper { position: relative; top: 0; margin-top: 0; height: auto; flex-direction: column; padding: 100px 20px 20px 20px; overflow: visible; }
+  .hero-section { position: relative; height: 100vh; }
+  .left-col { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .custom-dropdown { width: 100%; flex: 1; }
+  .map-col { min-height: 400px; }
+  .insight-card { 
+      position: fixed; right: 0; top: auto; bottom: 0; width: 100%; height: 85vh; 
+      transform: translateY(110%); border-radius: 24px 24px 0 0; z-index: 9999;
+  }
+  .insight-card.open { transform: translateY(0); }
+  .nav-links, .nav-btn { display: none; }
+  .hero-section h1 { font-size: 44px; }
 }
 </style>
 </head>
 <body>
 
-<div class="bpm-app">
+<nav>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-main); margin-right:8px;"><path d="M12 2L2 22h20L12 2z"/></svg>
+    <span style="color:var(--text-main);">Positioning Monitor</span>
+    <span style="color:var(--text-muted); font-weight:400; margin-left:8px;">| Luxury Intelligence</span>
+  </div>
+  <div class="nav-links">
+    <span>Dashboard</span>
+    <span>Methodology</span>
+  </div>
+  <div class="nav-btn">Export Matrix</div>
+</nav>
 
-  <nav class="bpm-nav">
-    <div class="bpm-logo">
-      <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--bpm-text); margin-right:8px;"><path d="M12 2L2 22h20L12 2z"/></svg>
-      <span style="color:var(--bpm-text);">Positioning Monitor</span>
-      <span style="color:var(--bpm-muted); font-weight:400; margin-left:8px;">| Luxury Intelligence</span>
-    </div>
-    <div class="bpm-nav-links">
-      <span>Map</span>
-      <span>Methodology</span>
-      <span>Audit Logs</span>
-    </div>
-    <div class="bpm-nav-btn">Export Matrix</div>
-  </nav>
+<!-- FIXED HERO -->
+<header class="hero-section" id="hero">
+  <div class="hero-content" id="hero-content">
+    <div class="eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
+    <h1 class="serif">Your Linguistic DNA</h1>
+    <p>Every time a brand communicates, it leaves a unique semantic trace.<br>Scroll to reveal the luxury landscape fingerprint.</p>
+  </div>
+</header>
 
-  <!-- FIXED PARALLAX HERO -->
-  <div class="bpm-hero-bg" id="bpm-hero">
-    <div class="bpm-hero-text" id="bpm-hero-text">
-      <div class="bpm-eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
-      <h1 class="bpm-serif">Your Linguistic DNA</h1>
-      <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
+<!-- DASHBOARD (Locks to exactly 100vh below hero) -->
+<div class="dashboard-wrapper">
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+    <div class="custom-dropdown">
+      <div class="dd-label">Target Entity</div>
+      <div class="dd-header" id="dd-header">Select a Brand... <span>▼</span></div>
+      <div class="dd-list" id="dd-list"></div>
+    </div>
+
+    <div class="toggle-panel">
+      <span class="toggle-label">Drift Vectors (2021)</span>
+      <div class="toggle-btn" id="btn-drift"></div>
+    </div>
+
+    <div class="quadrant-summary">
+      <div class="dd-label" style="margin-top:8px;">Quadrant Intel</div>
+      <div class="q-card" id="quad-dominant-private">
+        <div class="q-title">Dominant · Private</div>
+        <div class="q-desc">Authority meets a personal inner world. Defensible.</div>
+      </div>
+      <div class="q-card" id="quad-vulnerable-private">
+        <div class="q-title">Vulnerable · Private ✦</div>
+        <div class="q-desc">Memory and emotional specificity. Highly differentiated.</div>
+      </div>
+      <div class="q-card" id="quad-dominant-collective">
+        <div class="q-title">Dominant · Collective</div>
+        <div class="q-desc">Institutional authority. Highest collision risk.</div>
+      </div>
+      <div class="q-card" id="quad-vulnerable-collective">
+        <div class="q-title">Vulnerable · Collective</div>
+        <div class="q-desc">Structural whitespace. Openness meets shared culture.</div>
+      </div>
     </div>
   </div>
 
-  <!-- SCROLLING CONTENT WRAPPER -->
-  <div class="bpm-content-wrapper">
+  <!-- CENTER COLUMN: MAP -->
+  <div class="map-col">
+    <svg viewBox="0 0 800 400" id="bpm-svg">
+      <line x1="0" y1="200" x2="800" y2="200" class="axis-line" />
+      <line x1="400" y1="0" x2="400" y2="400" class="axis-line" />
 
-    <div class="bpm-controls">
-      <div class="bpm-pill-container">
-        <div class="bpm-pill-btn active" id="btn-current">Current Matrix</div>
-        <div class="bpm-pill-btn" id="btn-drift">Drift Vectors</div>
+      <text x="0" y="190" class="axis-label" text-anchor="start">DOMINANCE</text>
+      <text x="800" y="190" class="axis-label" text-anchor="end">VULNERABILITY</text>
+      <text x="410" y="15" class="axis-label" text-anchor="start">PRIVATE TRUTH</text>
+      <text x="410" y="390" class="axis-label" text-anchor="start">COLLECTIVE MYTH</text>
+
+      <g id="drift-layer" style="display:none;"></g>
+      <g id="brands-layer"></g>
+    </svg>
+  </div>
+
+  <!-- RIGHT COLUMN: HIDDEN INSIGHTS CARD -->
+  <div class="insight-card" id="insight-card">
+    <div class="close-btn" onclick="closeInsight()">✕</div>
+
+    <div>
+      <h2 class="serif insight-brand" id="detail-brand">Brand</h2>
+      <div class="insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
+    </div>
+
+    <div>
+      <div class="info-label">Primary Source Extract</div>
+      <div class="info-quote serif" id="detail-philosophy">"Philosophy."</div>
+    </div>
+
+    <div>
+      <div class="info-label">Agent 4 Execution Log</div>
+      <div class="code-box">
+        <div style="color:var(--text-main); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
+        <div id="detail-audit">Log.</div>
+      </div>
+      <div class="code-box">
+        <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--text-muted)">Reasoning</span>
+      </div>
+      <div class="code-box">
+        <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--text-muted)">Reasoning</span>
       </div>
     </div>
 
-    <section class="bpm-map-section">
-      <svg viewBox="0 0 800 400" id="bpm-svg">
-        <line x1="0" y1="200" x2="800" y2="200" class="bpm-axis-line" />
-        <line x1="400" y1="0" x2="400" y2="400" class="bpm-axis-line" />
-
-        <text x="0" y="190" class="bpm-axis-label" text-anchor="start">DOMINANCE</text>
-        <text x="800" y="190" class="bpm-axis-label" text-anchor="end">VULNERABILITY</text>
-        <text x="410" y="15" class="bpm-axis-label" text-anchor="start">PRIVATE TRUTH</text>
-        <text x="410" y="390" class="bpm-axis-label" text-anchor="start">COLLECTIVE MYTH</text>
-
-        <g id="drift-layer" style="display:none;"></g>
-        <g id="brands-layer"></g>
-      </svg>
-    </section>
-
-    <section class="bpm-quadrants">
-      <div class="bpm-q-card" id="quad-dominant-private">
-        <div class="bpm-q-title">Dominant · Private</div>
-        <div class="bpm-q-desc">A defensible position. Authority meets a personal inner world.</div>
-      </div>
-      <div class="bpm-q-card" id="quad-vulnerable-private">
-        <div class="bpm-q-title">Vulnerable · Private ✦</div>
-        <div class="bpm-q-desc">The intimacy territory. Memory and emotional specificity.</div>
-      </div>
-      <div class="bpm-q-card" id="quad-dominant-collective">
-        <div class="bpm-q-title">Dominant · Collective</div>
-        <div class="bpm-q-desc">The densest territory. Institutional authority and broad culture.</div>
-      </div>
-      <div class="bpm-q-card" id="quad-vulnerable-collective">
-        <div class="bpm-q-title">Vulnerable · Collective</div>
-        <div class="bpm-q-desc">A rare structural gap. Openness meets shared cultural address.</div>
-      </div>
-    </section>
-
-    <section class="bpm-data-grid">
-      <div>
-        <div class="bpm-list-title">Entities Mapped</div>
-        <div class="bpm-brand-list" id="brand-list"></div>
-      </div>
-
-      <div>
-        <div class="bpm-empty-state" id="empty-state">
-          Select a brand from the map or list to inspect the AI audit logs.
-        </div>
-
-        <div class="bpm-insight-panel" id="insight-panel">
-          <div class="bpm-insight-header">
-            <div>
-              <h2 class="bpm-serif bpm-insight-brand" id="detail-brand">Brand</h2>
-              <div class="bpm-insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
-            </div>
-          </div>
-
-          <div class="bpm-info-block">
-            <div class="bpm-info-label">Extracted Primary Source</div>
-            <div class="bpm-info-quote bpm-serif" id="detail-philosophy">"Philosophy goes here."</div>
-          </div>
-
-          <div class="bpm-info-block">
-            <div class="bpm-info-label">Agent 4 Execution Log</div>
-            <div class="bpm-code-box">
-              <div style="color:var(--bpm-text); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
-              <div id="detail-audit">Audit log text.</div>
-            </div>
-            <div class="bpm-code-box">
-              <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--bpm-muted)">Reasoning</span>
-            </div>
-            <div class="bpm-code-box">
-              <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--bpm-muted)">Reasoning</span>
-            </div>
-          </div>
-
-          <div class="bpm-info-block">
-            <div class="bpm-info-label">Historical Drift Insight</div>
-            <div class="bpm-info-text" id="detail-drift">Drift text.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="bpm-briefing">
-      <h2 class="bpm-serif">Strategic Architecture</h2>
-      <div class="bpm-b-grid">
-        <div class="bpm-b-col">
-          <h3>Tone of Voice (X-Axis)</h3>
-          <p>Dominance is the voice of the monument, relying on authority, legacy, and commands (e.g., Creed). Vulnerability is the voice of the confidant, stripping away the pedestal in favor of intimacy, somatic language, and emotional exposure (e.g., Byredo).</p>
-        </div>
-        <div class="bpm-b-col">
-          <h3>Narrative Scope (Y-Axis)</h3>
-          <p>Collective Myth constructs a universal, shared cultural religion positioning itself as a global institution (e.g., Chanel). Private Truth addresses the hyper-specific inner life of the individual, reading like a personal diary entry (e.g., Maison Margiela).</p>
-        </div>
-      </div>
-      <div class="bpm-b-full">
-        <h3>The Commercial Imperative</h3>
-        <p>By plotting legacy competitors, a glaring structural void emerges in the High Vulnerability / High Private Truth quadrant. Most luxury houses remain trapped in Dominance and Collective Myth. The VARŌ concept is engineered specifically to exploit this exact whitespace, offering radical intimacy to a modern consumer who has outgrown traditional status signaling.</p>
-      </div>
-    </section>
+    <div>
+      <div class="info-label">Historical Drift Insight</div>
+      <div class="info-text" id="detail-drift">Drift.</div>
+    </div>
   </div>
+
 </div>
 
-<div class="bpm-tooltip" id="bpm-tooltip">
-  <div class="bpm-tt-title" id="tt-brand">Brand</div>
-  <div class="bpm-tt-row"><span>X Score</span><span class="bpm-tt-val" id="tt-x">0.0</span></div>
-  <div class="bpm-tt-row"><span>Y Score</span><span class="bpm-tt-val" id="tt-y">0.0</span></div>
+<!-- BULLETPROOF TOOLTIP -->
+<div class="tooltip" id="bpm-tooltip">
+  <div class="tt-title" id="tt-brand">Brand</div>
+  <div class="tt-row"><span>X Score</span><span class="tt-val" id="tt-x">0.0</span></div>
+  <div class="tt-row"><span>Y Score</span><span class="tt-val" id="tt-y">0.0</span></div>
 </div>
 
 <script>
@@ -470,25 +446,27 @@ const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
 
+const svgBrands = document.getElementById('brands-layer');
+const svgDrift = document.getElementById('drift-layer');
+const tooltip = document.getElementById('bpm-tooltip');
+const heroContent = document.getElementById('hero-content');
+const ddHeader = document.getElementById('dd-header');
+const ddList = document.getElementById('dd-list');
+const insightCard = document.getElementById('insight-card');
+
 // --- CINEMATIC SCROLL LOGIC ---
-const heroText = document.getElementById('bpm-hero-text');
 window.addEventListener('scroll', () => {
   const scrollY = window.scrollY;
   const vh = window.innerHeight;
-  // Fade text to 0 opacity
-  heroText.style.opacity = Math.max(1 - (scrollY / (vh * 0.5)), 0);
-  // Slight parallax push down on the text
-  heroText.style.transform = `translateY(${scrollY * 0.3}px)`;
+  // Fade text to 0 as user scrolls down the 100vh
+  heroContent.style.opacity = Math.max(1 - (scrollY / (vh * 0.6)), 0);
+  heroContent.style.transform = `translateY(${scrollY * 0.2}px)`;
 });
 
-const svgBrands = document.getElementById('brands-layer');
-const svgDrift = document.getElementById('drift-layer');
-const listEl = document.getElementById('brand-list');
-const tooltip = document.getElementById('bpm-tooltip');
-
+// --- RENDER MAP & DRIFT ---
 brands.forEach(b => {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.setAttribute("class", "bpm-node");
+  g.setAttribute("class", "brand-node");
   g.setAttribute("data-name", b.name);
 
   if(b.isVaro) {
@@ -511,6 +489,7 @@ brands.forEach(b => {
     `;
   }
 
+  // BULLETPROOF HOVER: e.pageX/pageY with offset guarantees cursor never touches tooltip
   g.addEventListener('mouseenter', (e) => {
     document.getElementById('tt-brand').textContent = b.name;
     document.getElementById('tt-x').textContent = scores[b.name].x;
@@ -527,34 +506,42 @@ brands.forEach(b => {
 });
 
 function moveTT(e) {
-  tooltip.style.left = (e.pageX + 15) + 'px';
-  tooltip.style.top = (e.pageY + 15) + 'px';
+  tooltip.style.left = (e.pageX + 20) + 'px';
+  tooltip.style.top = (e.pageY + 20) + 'px';
 }
 
+// --- RENDER DROPDOWN ---
 brands.forEach(b => {
   const item = document.createElement('div');
-  item.className = 'bpm-list-item';
-  item.id = 'list-' + b.name.replace(/\\s+/g, '');
+  item.className = 'dd-item';
   item.innerHTML = `
-    <div class="bpm-item-left">
-      <div class="bpm-item-dot" style="background: ${b.color}; box-shadow: 0 0 8px ${b.color};"></div>
-      <div class="bpm-item-name">${b.name}</div>
-    </div>
-    <div class="bpm-item-score">${scores[b.name].x} · ${scores[b.name].y}</div>
+    <div class="item-dot" style="background: ${b.color}; box-shadow: 0 0 8px ${b.color};"></div>
+    <div class="item-name">${b.name}</div>
   `;
-  item.onclick = () => selectBrand(b.name);
-  listEl.appendChild(item);
+  item.onclick = (e) => {
+    e.stopPropagation();
+    selectBrand(b.name);
+    ddList.classList.remove('show');
+  };
+  ddList.appendChild(item);
 });
 
+// Dropdown Toggle Logic
+ddHeader.onclick = (e) => {
+    e.stopPropagation();
+    ddList.classList.toggle('show');
+};
+document.body.onclick = () => {
+    ddList.classList.remove('show');
+};
+
+// --- SELECTION LOGIC ---
 function selectBrand(name) {
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('insight-panel').style.display = 'block';
+  // Update Dropdown Header
+  ddHeader.innerHTML = `${name} <span style="color:var(--text-muted)">▼</span>`;
 
-  document.querySelectorAll('.bpm-list-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('list-' + name.replace(/\\s+/g, '')).classList.add('active');
-
-  // DIMMING EFFECT
-  document.querySelectorAll('.bpm-node').forEach(node => {
+  // Dim Unselected Nodes
+  document.querySelectorAll('.brand-node').forEach(node => {
     node.style.opacity = node.getAttribute('data-name') === name ? '1' : '0.15';
   });
 
@@ -562,36 +549,49 @@ function selectBrand(name) {
   const c = commentary[name];
   const s = scores[name];
 
+  // Populate Insights Card
   document.getElementById('detail-brand').textContent = b.name;
   document.getElementById('detail-brand').style.color = b.color;
   document.getElementById('detail-coords').textContent = `[ X: ${s.x}, Y: ${s.y} ]`;
 
   let rawPhil = typeof c.philosophy === 'object' ? c.philosophy[name] : c.philosophy;
   document.getElementById('detail-philosophy').textContent = `"${rawPhil}"`;
-
   document.getElementById('detail-audit').textContent = c.quote;
   document.getElementById('detail-rx').textContent = c.rx;
   document.getElementById('detail-ry').textContent = c.ry;
-  document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--bpm-accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
+  document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
 
-  // QUADRANT GLOW
+  // Slide In Right Panel
+  insightCard.classList.add('open');
+
+  // Highlight Quadrant Card
   const qKey = (s.x >= 5 ? "vulnerable" : "dominant") + "-" + (s.y >= 5 ? "private" : "collective");
-  document.querySelectorAll('.bpm-q-card').forEach(q => q.classList.remove('active-glow'));
+  document.querySelectorAll('.q-card').forEach(q => q.classList.remove('active-glow'));
   const targetQ = document.getElementById('quad-' + qKey);
   if(targetQ) targetQ.classList.add('active-glow');
 }
 
-const btnCurr = document.getElementById('btn-current');
-const btnDrift = document.getElementById('btn-drift');
+// Close Right Panel
+function closeInsight() {
+    insightCard.classList.remove('open');
+    document.querySelectorAll('.brand-node').forEach(node => { node.style.opacity = '1'; });
+    document.querySelectorAll('.q-card').forEach(q => q.classList.remove('active-glow'));
+    ddHeader.innerHTML = `Select a Brand... <span style="color:var(--text-muted)">▼</span>`;
+}
 
-btnCurr.onclick = () => {
-  btnCurr.classList.add('active'); btnDrift.classList.remove('active');
-  svgDrift.style.display = 'none';
+// --- DRIFT TOGGLE LOGIC ---
+const btnDrift = document.getElementById('btn-drift');
+btnDrift.onclick = function() {
+  this.classList.toggle('active');
+  svgDrift.style.display = this.classList.contains('active') ? 'block' : 'none';
 };
-btnDrift.onclick = () => {
-  btnDrift.classList.add('active'); btnCurr.classList.remove('active');
-  svgDrift.style.display = 'block';
-};
+
+// Reset map on background click
+document.getElementById('bpm-svg').addEventListener('click', (e) => {
+  if (e.target.tagName === 'rect' || e.target.tagName === 'line' || e.target.tagName === 'text') {
+    closeInsight();
+  }
+});
 </script>
 </body>
 </html>
@@ -605,4 +605,5 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-components.html(html_with_live_data, height=1800, scrolling=True)
+# Render isolated full-screen iframe
+st.components.v1.html(html_with_live_data, height=2000, scrolling=True)
