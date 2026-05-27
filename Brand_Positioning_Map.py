@@ -6,11 +6,21 @@ import os
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
-# Hide Streamlit's default padding cleanly
+# Hide Streamlit's default UI and force iframe to absolute fullscreen
 st.markdown("""
     <style>
         .block-container { padding: 0rem !important; max-width: 100% !important; margin: 0 !important; }
         header, footer { display: none !important; }
+        iframe {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border: none !important;
+        }
+        body { overflow: hidden; } 
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,7 +80,6 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    # SVG Math mapped to viewBox="0 0 800 400"
     cx = 50 + (x / 10.0) * 700
     cy = 40 + ((10.0 - y) / 10.0) * 320
 
@@ -109,7 +118,7 @@ for brand, data in live_scores.items():
         "drift": drift_insights.get(brand, "No drift data.")
     }
 
-# --- 3. THE HTML TEMPLATE ---
+# --- 3. THE HTML TEMPLATE WITH CINEMATIC SCROLL ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
@@ -139,20 +148,22 @@ custom_html_template = """
   min-height: 100vh;
   margin: 0; padding: 0;
   -webkit-font-smoothing: antialiased;
-  background-image: radial-gradient(circle at 50% 0%, rgba(0, 229, 153, 0.05), transparent 60%);
-  overflow-x: hidden;
 }
 
 .bpm-app * { box-sizing: border-box; }
 .bpm-serif { font-family: 'Instrument Serif', serif; font-weight: normal; }
 .bpm-mono { font-family: 'JetBrains Mono', monospace; }
 
-/* NAVIGATION */
+/* NAV - PINNED TO TOP */
 .bpm-nav {
+  position: fixed; top: 0; left: 0; width: 100vw; z-index: 1000;
   display: flex; align-items: center; justify-content: space-between;
   padding: 24px 40px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(to bottom, rgba(9,10,15,1) 0%, rgba(9,10,15,0) 100%);
+  pointer-events: none; /* Let scroll pass through */
 }
+.bpm-nav > * { pointer-events: auto; } /* Keep buttons clickable */
+
 .bpm-logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
 .bpm-nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--bpm-muted); }
 .bpm-nav-btn {
@@ -162,21 +173,40 @@ custom_html_template = """
 }
 .bpm-nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
 
-/* HERO SECTION (Clean, Native Flow) */
-.bpm-hero {
+/* FIXED HERO BACKGROUND (THE PARALLAX TRICK) */
+.bpm-hero-bg {
+  position: fixed; 
+  top: 0; left: 0; 
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1; /* Lowest layer */
+  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.06), transparent 50%), var(--bpm-bg);
+}
+.bpm-hero-text {
   text-align: center;
-  padding: 80px 20px 60px 20px;
+  padding: 0 20px;
 }
 .bpm-eyebrow {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   color: var(--bpm-muted); letter-spacing: 0.3em; text-transform: uppercase;
   margin-bottom: 24px;
 }
-.bpm-hero h1 { font-size: 64px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; margin-top: 0; color: #fff; }
-.bpm-hero p { font-size: 16px; color: var(--bpm-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+.bpm-hero-text h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; margin-top: 0; color: #fff; }
+.bpm-hero-text p { font-size: 16px; color: var(--bpm-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+/* CONTENT WRAPPER - SLIDES UP OVER HERO */
+.bpm-content-wrapper {
+  position: relative;
+  z-index: 10;
+  margin-top: 100vh; /* Pushes content precisely one screen down initially */
+  background-color: var(--bpm-bg); /* Opaque background covers the hero */
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 60px; padding-bottom: 100px;
+  box-shadow: 0 -30px 80px rgba(0, 0, 0, 0.95);
+}
 
 /* TOGGLE CONTROLS */
-.bpm-controls { display: flex; justify-content: center; margin-bottom: 40px; }
+.bpm-controls { display: flex; justify-content: center; margin-bottom: 60px; }
 .bpm-pill-container {
   background: var(--bpm-panel); border: 1px solid var(--bpm-border);
   border-radius: 100px; display: flex; padding: 4px; gap: 4px;
@@ -281,7 +311,7 @@ custom_html_template = """
 @media (max-width: 900px) {
   .bpm-nav { padding: 20px; }
   .bpm-nav-links, .bpm-nav-btn { display: none; }
-  .bpm-hero h1 { font-size: 40px; }
+  .bpm-hero-text h1 { font-size: 40px; }
   .bpm-quadrants { grid-template-columns: 1fr 1fr; }
   .bpm-data-grid { grid-template-columns: 1fr; gap: 40px; }
   .bpm-b-grid { grid-template-columns: 1fr; }
@@ -295,6 +325,7 @@ custom_html_template = """
 <body>
 
 <div class="bpm-app">
+
   <nav class="bpm-nav">
     <div class="bpm-logo">
       <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--bpm-text); margin-right:8px;"><path d="M12 2L2 22h20L12 2z"/></svg>
@@ -309,116 +340,123 @@ custom_html_template = """
     <div class="bpm-nav-btn">Export Matrix</div>
   </nav>
 
-  <header class="bpm-hero">
-    <div class="bpm-eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
-    <h1 class="bpm-serif">Your Linguistic DNA</h1>
-    <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
-  </header>
-
-  <div class="bpm-controls">
-    <div class="bpm-pill-container">
-      <div class="bpm-pill-btn active" id="btn-current">Current Matrix</div>
-      <div class="bpm-pill-btn" id="btn-drift">Drift Vectors</div>
+  <!-- FIXED PARALLAX HERO -->
+  <div class="bpm-hero-bg" id="bpm-hero">
+    <div class="bpm-hero-text" id="bpm-hero-text">
+      <div class="bpm-eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
+      <h1 class="bpm-serif">Your Linguistic DNA</h1>
+      <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
     </div>
   </div>
 
-  <section class="bpm-map-section">
-    <svg viewBox="0 0 800 400" id="bpm-svg">
-      <line x1="0" y1="200" x2="800" y2="200" class="bpm-axis-line" />
-      <line x1="400" y1="0" x2="400" y2="400" class="bpm-axis-line" />
+  <!-- SCROLLING CONTENT WRAPPER -->
+  <div class="bpm-content-wrapper">
 
-      <text x="0" y="190" class="bpm-axis-label" text-anchor="start">DOMINANCE</text>
-      <text x="800" y="190" class="bpm-axis-label" text-anchor="end">VULNERABILITY</text>
-      <text x="410" y="15" class="bpm-axis-label" text-anchor="start">PRIVATE TRUTH</text>
-      <text x="410" y="390" class="bpm-axis-label" text-anchor="start">COLLECTIVE MYTH</text>
-
-      <g id="drift-layer" style="display:none;"></g>
-      <g id="brands-layer"></g>
-    </svg>
-  </section>
-
-  <section class="bpm-quadrants">
-    <div class="bpm-q-card" id="quad-dominant-private">
-      <div class="bpm-q-title">Dominant · Private</div>
-      <div class="bpm-q-desc">A defensible position. Authority meets a personal inner world.</div>
-    </div>
-    <div class="bpm-q-card" id="quad-vulnerable-private">
-      <div class="bpm-q-title">Vulnerable · Private ✦</div>
-      <div class="bpm-q-desc">The intimacy territory. Memory and emotional specificity.</div>
-    </div>
-    <div class="bpm-q-card" id="quad-dominant-collective">
-      <div class="bpm-q-title">Dominant · Collective</div>
-      <div class="bpm-q-desc">The densest territory. Institutional authority and broad culture.</div>
-    </div>
-    <div class="bpm-q-card" id="quad-vulnerable-collective">
-      <div class="bpm-q-title">Vulnerable · Collective</div>
-      <div class="bpm-q-desc">A rare structural gap. Openness meets shared cultural address.</div>
-    </div>
-  </section>
-
-  <section class="bpm-data-grid">
-    <div>
-      <div class="bpm-list-title">Entities Mapped</div>
-      <div class="bpm-brand-list" id="brand-list"></div>
-    </div>
-
-    <div>
-      <div class="bpm-empty-state" id="empty-state">
-        Select a brand from the map or list to inspect the AI audit logs.
-      </div>
-
-      <div class="bpm-insight-panel" id="insight-panel">
-        <div class="bpm-insight-header">
-          <div>
-            <h2 class="bpm-serif bpm-insight-brand" id="detail-brand">Brand</h2>
-            <div class="bpm-insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
-          </div>
-        </div>
-
-        <div class="bpm-info-block">
-          <div class="bpm-info-label">Extracted Primary Source</div>
-          <div class="bpm-info-quote bpm-serif" id="detail-philosophy">"Philosophy goes here."</div>
-        </div>
-
-        <div class="bpm-info-block">
-          <div class="bpm-info-label">Agent 4 Execution Log</div>
-          <div class="bpm-code-box">
-            <div style="color:var(--bpm-text); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
-            <div id="detail-audit">Audit log text.</div>
-          </div>
-          <div class="bpm-code-box">
-            <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--bpm-muted)">Reasoning</span>
-          </div>
-          <div class="bpm-code-box">
-            <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--bpm-muted)">Reasoning</span>
-          </div>
-        </div>
-
-        <div class="bpm-info-block">
-          <div class="bpm-info-label">Historical Drift Insight</div>
-          <div class="bpm-info-text" id="detail-drift">Drift text.</div>
-        </div>
+    <div class="bpm-controls">
+      <div class="bpm-pill-container">
+        <div class="bpm-pill-btn active" id="btn-current">Current Matrix</div>
+        <div class="bpm-pill-btn" id="btn-drift">Drift Vectors</div>
       </div>
     </div>
-  </section>
 
-  <section class="bpm-briefing">
-    <h2 class="bpm-serif">Strategic Architecture</h2>
-    <div class="bpm-b-grid">
-      <div class="bpm-b-col">
-        <h3>Tone of Voice (X-Axis)</h3>
-        <p>Dominance is the voice of the monument, relying on authority, legacy, and commands (e.g., Creed). Vulnerability is the voice of the confidant, stripping away the pedestal in favor of intimacy, somatic language, and emotional exposure (e.g., Byredo).</p>
+    <section class="bpm-map-section">
+      <svg viewBox="0 0 800 400" id="bpm-svg">
+        <line x1="0" y1="200" x2="800" y2="200" class="bpm-axis-line" />
+        <line x1="400" y1="0" x2="400" y2="400" class="bpm-axis-line" />
+
+        <text x="0" y="190" class="bpm-axis-label" text-anchor="start">DOMINANCE</text>
+        <text x="800" y="190" class="bpm-axis-label" text-anchor="end">VULNERABILITY</text>
+        <text x="410" y="15" class="bpm-axis-label" text-anchor="start">PRIVATE TRUTH</text>
+        <text x="410" y="390" class="bpm-axis-label" text-anchor="start">COLLECTIVE MYTH</text>
+
+        <g id="drift-layer" style="display:none;"></g>
+        <g id="brands-layer"></g>
+      </svg>
+    </section>
+
+    <section class="bpm-quadrants">
+      <div class="bpm-q-card" id="quad-dominant-private">
+        <div class="bpm-q-title">Dominant · Private</div>
+        <div class="bpm-q-desc">A defensible position. Authority meets a personal inner world.</div>
       </div>
-      <div class="bpm-b-col">
-        <h3>Narrative Scope (Y-Axis)</h3>
-        <p>Collective Myth constructs a universal, shared cultural religion positioning itself as a global institution (e.g., Chanel). Private Truth addresses the hyper-specific inner life of the individual, reading like a personal diary entry (e.g., Maison Margiela).</p>
+      <div class="bpm-q-card" id="quad-vulnerable-private">
+        <div class="bpm-q-title">Vulnerable · Private ✦</div>
+        <div class="bpm-q-desc">The intimacy territory. Memory and emotional specificity.</div>
       </div>
-    </div>
-    <div class="bpm-b-full">
-      <h3>The Commercial Imperative</h3>
-      <p>By plotting legacy competitors, a glaring structural void emerges in the High Vulnerability / High Private Truth quadrant. Most luxury houses remain trapped in Dominance and Collective Myth. The VARŌ concept is engineered specifically to exploit this exact whitespace, offering radical intimacy to a modern consumer who has outgrown traditional status signaling.</p>
-    </div>
-  </section>
+      <div class="bpm-q-card" id="quad-dominant-collective">
+        <div class="bpm-q-title">Dominant · Collective</div>
+        <div class="bpm-q-desc">The densest territory. Institutional authority and broad culture.</div>
+      </div>
+      <div class="bpm-q-card" id="quad-vulnerable-collective">
+        <div class="bpm-q-title">Vulnerable · Collective</div>
+        <div class="bpm-q-desc">A rare structural gap. Openness meets shared cultural address.</div>
+      </div>
+    </section>
+
+    <section class="bpm-data-grid">
+      <div>
+        <div class="bpm-list-title">Entities Mapped</div>
+        <div class="bpm-brand-list" id="brand-list"></div>
+      </div>
+
+      <div>
+        <div class="bpm-empty-state" id="empty-state">
+          Select a brand from the map or list to inspect the AI audit logs.
+        </div>
+
+        <div class="bpm-insight-panel" id="insight-panel">
+          <div class="bpm-insight-header">
+            <div>
+              <h2 class="bpm-serif bpm-insight-brand" id="detail-brand">Brand</h2>
+              <div class="bpm-insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
+            </div>
+          </div>
+
+          <div class="bpm-info-block">
+            <div class="bpm-info-label">Extracted Primary Source</div>
+            <div class="bpm-info-quote bpm-serif" id="detail-philosophy">"Philosophy goes here."</div>
+          </div>
+
+          <div class="bpm-info-block">
+            <div class="bpm-info-label">Agent 4 Execution Log</div>
+            <div class="bpm-code-box">
+              <div style="color:var(--bpm-text); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
+              <div id="detail-audit">Audit log text.</div>
+            </div>
+            <div class="bpm-code-box">
+              <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--bpm-muted)">Reasoning</span>
+            </div>
+            <div class="bpm-code-box">
+              <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--bpm-muted)">Reasoning</span>
+            </div>
+          </div>
+
+          <div class="bpm-info-block">
+            <div class="bpm-info-label">Historical Drift Insight</div>
+            <div class="bpm-info-text" id="detail-drift">Drift text.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bpm-briefing">
+      <h2 class="bpm-serif">Strategic Architecture</h2>
+      <div class="bpm-b-grid">
+        <div class="bpm-b-col">
+          <h3>Tone of Voice (X-Axis)</h3>
+          <p>Dominance is the voice of the monument, relying on authority, legacy, and commands (e.g., Creed). Vulnerability is the voice of the confidant, stripping away the pedestal in favor of intimacy, somatic language, and emotional exposure (e.g., Byredo).</p>
+        </div>
+        <div class="bpm-b-col">
+          <h3>Narrative Scope (Y-Axis)</h3>
+          <p>Collective Myth constructs a universal, shared cultural religion positioning itself as a global institution (e.g., Chanel). Private Truth addresses the hyper-specific inner life of the individual, reading like a personal diary entry (e.g., Maison Margiela).</p>
+        </div>
+      </div>
+      <div class="bpm-b-full">
+        <h3>The Commercial Imperative</h3>
+        <p>By plotting legacy competitors, a glaring structural void emerges in the High Vulnerability / High Private Truth quadrant. Most luxury houses remain trapped in Dominance and Collective Myth. The VARŌ concept is engineered specifically to exploit this exact whitespace, offering radical intimacy to a modern consumer who has outgrown traditional status signaling.</p>
+      </div>
+    </section>
+  </div>
 </div>
 
 <div class="bpm-tooltip" id="bpm-tooltip">
@@ -431,6 +469,17 @@ custom_html_template = """
 const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
+
+// --- CINEMATIC SCROLL LOGIC ---
+const heroText = document.getElementById('bpm-hero-text');
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  const vh = window.innerHeight;
+  // Fade text to 0 opacity
+  heroText.style.opacity = Math.max(1 - (scrollY / (vh * 0.5)), 0);
+  // Slight parallax push down on the text
+  heroText.style.transform = `translateY(${scrollY * 0.3}px)`;
+});
 
 const svgBrands = document.getElementById('brands-layer');
 const svgDrift = document.getElementById('drift-layer');
@@ -504,6 +553,7 @@ function selectBrand(name) {
   document.querySelectorAll('.bpm-list-item').forEach(el => el.classList.remove('active'));
   document.getElementById('list-' + name.replace(/\\s+/g, '')).classList.add('active');
 
+  // DIMMING EFFECT
   document.querySelectorAll('.bpm-node').forEach(node => {
     node.style.opacity = node.getAttribute('data-name') === name ? '1' : '0.15';
   });
@@ -524,6 +574,7 @@ function selectBrand(name) {
   document.getElementById('detail-ry').textContent = c.ry;
   document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--bpm-accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
 
+  // QUADRANT GLOW
   const qKey = (s.x >= 5 ? "vulnerable" : "dominant") + "-" + (s.y >= 5 ? "private" : "collective");
   document.querySelectorAll('.bpm-q-card').forEach(q => q.classList.remove('active-glow'));
   const targetQ = document.getElementById('quad-' + qKey);
