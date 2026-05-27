@@ -6,11 +6,12 @@ import os
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
+# Hide Streamlit's default padding and UI chrome
 st.markdown("""
     <style>
         .block-container { padding: 0rem; max-width: 100%; }
         header, #MainMenu, footer {visibility: hidden;}
-        iframe { border: none; }
+        iframe { border: none; background: transparent; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -49,7 +50,6 @@ color_map = {
     "Creed": "#d4c490", "Byredo": "#90a8d4", "VARŌ": "#c9a96e", "VARO": "#c9a96e"
 }
 
-# THE NEW STRATEGIC INSIGHTS DICTIONARY
 drift_insights = {
     "Chanel": "Immovable monument. Near-zero drift over 4 years. Insight: Chanel acts as the category's gravitational anchor, relying on absolute consistency rather than adaptation to maintain unquestioned legacy status.",
     "Hermès": "Minor regression. A slight tightening of its poetic, nature-driven narrative into more structured prestige. Insight: Hermès maintains its core elemental identity while subtly reinforcing its institutional dominance.",
@@ -124,693 +124,207 @@ for brand, data in live_scores.items():
         "drift_insight": drift_insights.get(brand, "No drift data available.")
     }
 
-# --- 3. THE HTML TEMPLATE ---
+# --- 3. THE EXACT CUSTOM HTML TEMPLATE PROVIDED ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Brand Positioning Monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
 <style>
-  :root {
-    --glass-bg: rgba(255,255,255,0.04);
-    --glass-border: rgba(255,255,255,0.10);
-    --glass-hover: rgba(255,255,255,0.07);
-    --blur: blur(24px);
-    --gold: #c9a96e;
-    --gold-dim: rgba(201,169,110,0.3);
-    --white: #f4f0ea;
-    --white-dim: rgba(244,240,234,0.45);
-    --white-faint: rgba(244,240,234,0.15);
-    --bg: #080a0f;
-    --text-primary: #f4f0ea;
-    --text-secondary: rgba(244,240,234,0.55);
-    --text-tertiary: rgba(244,240,234,0.28);
-    --radius: 16px;
-    --radius-sm: 10px;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(201,169,110,0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(100,120,180,0.05) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 60% at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 70%);
-    pointer-events: none; z-index: 0;
-  }
-  body > * { position: relative; z-index: 1; }
+:root {
+  --bg:#08090d; --panel:#10131a; --panel2:#151923; --line:rgba(255,255,255,.09);
+  --text:#f7f7fb; --muted:#9aa3b2; --faint:#626b7c; --gold:#ffcc66;
+  --goldSoft:rgba(255,204,102,.14); --green:#7bd88f; --red:#ff8f8f;
+  --radius:12px; --shadow:0 24px 80px rgba(0,0,0,.36);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Inter,system-ui,sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;
+  background:radial-gradient(circle at 20% -10%,rgba(255,204,102,.13),transparent 32%),
+             radial-gradient(circle at 86% 0%,rgba(120,155,255,.1),transparent 30%),var(--bg);
+}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{
+  height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);background:rgba(8,9,13,.76);backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:10;
+}
+.lockup{display:flex;align-items:center;gap:12px}
+.logo{
+  width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--gold),#fff0bd);
+  color:#111;font-weight:900;display:grid;place-items:center;box-shadow:0 0 28px rgba(255,204,102,.2)
+}
+.title{font-size:14px;font-weight:800}.sub{font-size:11px;color:var(--muted);margin-top:2px}
+.status{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:var(--muted);font-size:12px;background:rgba(255,255,255,.04)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 16px rgba(123,216,143,.55)}
 
-  nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1.25rem 2.5rem;
-    background: rgba(8,10,15,0.7);
-    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-    border-bottom: 1px solid var(--glass-border);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .nav-brand { display: flex; flex-direction: column; gap: 1px; }
-  .nav-brand-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.08em; color: var(--white); }
-  .nav-brand-sub { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); font-weight: 300; }
+.workspace{display:grid;grid-template-columns:280px minmax(0,1fr)360px;flex:1}
+.rail,.inspector{background:rgba(16,19,26,.86);backdrop-filter:blur(22px);padding:18px;overflow:auto}
+.rail{border-right:1px solid var(--line)}.inspector{border-left:1px solid var(--line)}
+.stage{padding:20px;overflow:auto;min-width:0}
 
-  .layout {
-    display: grid;
-    grid-template-columns: 260px 1fr 320px;
-    min-height: calc(100vh - 65px);
-  }
+.panel{background:rgba(16,19,26,.76);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel+ .panel{margin-top:14px}
+.panel-head{padding:14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--faint);font-weight:800}
+.panel-title{font-size:13px;font-weight:800;margin-top:4px}.panel-body{padding:14px}
 
-  .sidebar-left {
-    border-right: 1px solid var(--glass-border);
-    padding: 1.5rem 1.25rem;
-    background: rgba(8,10,15,0.5);
-    backdrop-filter: var(--blur);
-    display: flex; flex-direction: column; gap: 1.5rem;
-    overflow-y: auto;
-  }
+.search{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);outline:none;padding:0 12px;margin-bottom:12px}
+.search:focus{border-color:rgba(255,204,102,.45);box-shadow:0 0 0 3px rgba(255,204,102,.08)}
+.brand-list{display:flex;flex-direction:column;gap:6px}
+.brand-item{
+  display:grid;grid-template-columns:10px minmax(0,1fr)auto;align-items:center;gap:10px;
+  padding:10px;border:1px solid transparent;border-radius:9px;cursor:pointer;color:var(--muted)
+}
+.brand-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.brand-item.selected-focus{border-color:rgba(255,204,102,.38);background:var(--goldSoft);color:var(--text)}
+.brand-dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 16px currentColor}
+.brand-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand-coords{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
 
-  .section-label {
-    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--text-tertiary); margin-bottom: 0.6rem; font-weight: 400;
-  }
+.axis-pill{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:11px;padding:4px}
+.axis-pill span{height:30px;display:grid;place-items:center;border-radius:8px;color:var(--muted);font-size:12px}
+.axis-pill span.active{background:var(--gold);color:#16120a;font-weight:800}
 
-  .glass-card {
-    background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); backdrop-filter: var(--blur);
-  }
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.metric{border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.035);padding:14px}
+.metric-value{font-size:24px;font-weight:900;letter-spacing:-.04em;line-height:1}.metric-label{font-size:11px;color:var(--muted);margin-top:7px}
 
-  .brand-list { display: flex; flex-direction: column; gap: 3px; }
-  .brand-item {
-    display: flex; align-items: center; gap: 9px;
-    padding: 8px 10px; border-radius: var(--radius-sm);
-    cursor: pointer; transition: all 0.15s;
-    border: 1px solid transparent;
-  }
-  .brand-item:hover { background: var(--glass-hover); }
-  .brand-item.selected-focus { background: rgba(201,169,110,0.06); border-color: var(--gold-dim); }
-  .brand-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .brand-item-name { font-size: 11.5px; font-weight: 300; color: var(--text-secondary); flex: 1; transition: color 0.15s; }
-  .brand-item.selected-focus .brand-item-name { color: var(--gold); }
-  .brand-coords { font-size: 9px; color: var(--text-tertiary); font-family: 'Cormorant Garamond', serif; }
-  .brand-item.selected-focus .brand-coords { color: var(--gold-dim); }
+.map-panel{overflow:hidden}
+.map-toolbar{min-height:58px;padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px}
+.map-toolbar h1{font-size:17px;letter-spacing:-.02em}.map-toolbar p{font-size:12px;color:var(--muted);margin-top:4px}
+.icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;display:grid;place-items:center}
+.icon-btn.active{border-color:rgba(255,204,102,.45);background:var(--goldSoft);color:var(--gold)}
+.icon-btn svg{width:17px;height:17px;stroke:currentColor}
+.canvas-wrap{position:relative;padding:12px}
+.map-canvas{display:block;width:100%;aspect-ratio:1.7/1;min-height:360px;max-height:620px;border-radius:10px;background:#0b0d13;border:1px solid var(--line)}
+.axis-label{font:800 8.5px Inter,sans-serif;letter-spacing:.18em;fill:rgba(247,247,251,.34)}
+.brand-node{transition:opacity .18s,transform .18s;transform-box:fill-box;transform-origin:center}.brand-node:hover{transform:scale(1.08)}
+#pulse-ring{animation:pulse 1.8s ease-out infinite}@keyframes pulse{0%{r:12;opacity:.8}100%{r:32;opacity:0}}
 
-  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--glass-border); }
-  .toggle-row:last-child { border-bottom: none; }
-  .toggle-label { font-size: 11px; font-weight: 300; color: var(--text-secondary); letter-spacing: 0.03em; }
-  .toggle { width: 34px; height: 19px; background: rgba(255,255,255,0.08); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; }
-  .toggle.on { background: rgba(201,169,110,0.25); border-color: var(--gold-dim); }
-  .toggle::after { content: ''; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: rgba(255,255,255,0.4); top: 2px; left: 2px; transition: all 0.2s; }
-  .toggle.on::after { left: 17px; background: var(--gold); }
+.tooltip{position:absolute;z-index:20;min-width:172px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.12s;background:rgba(17,20,28,.94);border:1px solid rgba(255,255,255,.14);border-radius:10px;box-shadow:var(--shadow);padding:10px}
+.tooltip.visible{opacity:1;transform:translateY(0)}
+.tooltip-brand{font-weight:900;font-size:12px;margin-bottom:8px}.tooltip-row{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;line-height:1.7}.tooltip-val{color:var(--text)}
 
-  .axis-block { padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-bg); margin-bottom: 7px; }
-  .axis-name { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px; font-weight: 400; }
-  .axis-poles { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-  .axis-pole { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
-  .axis-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), var(--gold-dim), var(--glass-border)); margin: 0 8px; }
+.quadrants{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.quadrant{border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.03);padding:12px;min-height:92px}
+.quadrant.highlight{border-color:rgba(255,204,102,.34);background:var(--goldSoft)}
+.quadrant-name{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;font-weight:900}
+.quadrant-brands{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
 
-  .main-map {
-    border-right: 1px solid var(--glass-border);
-    padding: 1.5rem;
-    display: flex; flex-direction: column; gap: 1.25rem;
-    overflow-y: auto;
-    background: rgba(6,8,13,0.3);
-  }
+.drift-bars{display:flex;flex-direction:column;gap:8px}
+.drift-row{display:grid;grid-template-columns:108px minmax(80px,1fr)42px;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;cursor:pointer}
+.drift-row.highlighted{background:var(--goldSoft)}
+.drift-brand-name{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drift-track{height:4px;border-radius:999px;background:rgba(255,255,255,.06);position:relative}
+.drift-old-marker,.drift-new-marker,.drift-connector{position:absolute;top:50%;transform:translateY(-50%)}
+.drift-old-marker{width:2px;height:12px;background:rgba(255,255,255,.28);border-radius:2px}
+.drift-new-marker{width:3px;height:14px;background:var(--gold);border-radius:2px;box-shadow:0 0 12px rgba(255,204,102,.38)}
+.drift-connector{height:3px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,204,102,.6));border-radius:999px}
+.drift-delta{font-size:11px;text-align:right;color:var(--faint)}.drift-delta.up{color:var(--green)}.drift-delta.down{color:var(--red)}
 
-  .map-header { display: flex; align-items: flex-start; justify-content: space-between; }
-  .map-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--white); }
-  .map-subtitle { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.06em; font-weight: 300; }
+.selected-pill{color:var(--gold);background:var(--goldSoft);border:1px solid rgba(255,204,102,.28);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{min-height:210px;display:grid;place-items:center;text-align:center;color:var(--faint);font-size:13px;line-height:1.6}
+.hidden{display:none!important}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.score-card,.insight{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);padding:12px}
+.score-label,.insight-title{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;font-weight:900}
+.score-num{font-size:34px;font-weight:900;letter-spacing:-.06em;margin-top:8px}.score-axis-name{font-size:11px;color:var(--muted)}
+.score-bar-track{height:5px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:12px}.score-bar-fill{height:100%;background:linear-gradient(90deg,#8ab4ff,var(--gold));border-radius:999px;transition:.5s}
+.insight{margin-top:12px}.insight.accent{background:var(--goldSoft);border-color:rgba(255,204,102,.26)}
+.insight-heading{font-family:"Instrument Serif",serif;font-size:20px;margin:8px 0}.insight-text{font-size:12px;color:var(--muted);line-height:1.7}.implication{font-size:12px;font-weight:800;margin-top:9px}
+.quote{font-family:"Instrument Serif",serif;font-size:17px;line-height:1.55;color:#d8dde8}
+.reasoning{display:flex;flex-direction:column;gap:8px;margin-top:12px}.reason-row{display:grid;grid-template-columns:74px 1fr;gap:9px}
+.tag{border:1px solid var(--line);border-radius:7px;color:var(--muted);padding:4px 6px;font-size:9px;font-weight:900;text-align:center}.reason-text{font-size:11.5px;color:var(--muted);line-height:1.6}
 
-  .map-container {
-    background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); backdrop-filter: var(--blur);
-    padding: 1.5rem; position: relative; overflow: hidden;
-  }
-  .map-canvas { width: 100%; height: 100%; }
-
-  .tooltip {
-    position: absolute;
-    background: rgba(10,13,20,0.95); backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
-    padding: 11px 13px; pointer-events: none; opacity: 0;
-    transition: opacity 0.12s; z-index: 50; min-width: 150px;
-  }
-  .tooltip.visible { opacity: 1; }
-  .tooltip-brand { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400; color: var(--white); margin-bottom: 5px; }
-  .tooltip-row { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); margin-bottom: 2px; gap: 12px; }
-  .tooltip-val { color: var(--text-secondary); }
-
-  .quadrant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-  .quadrant-card {
-    padding: 12px; border-radius: var(--radius-sm);
-    border: 1px solid var(--glass-border); background: var(--glass-bg);
-  }
-  .quadrant-card.highlight { border-color: var(--gold-dim); background: rgba(201,169,110,0.05); }
-  .quadrant-name { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
-  .quadrant-brands { font-size: 11px; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
-
-  .drift-section { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 1.25rem; }
-  .drift-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-  .drift-title { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); }
-  .drift-legend { display: flex; gap: 1rem; align-items: center; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; color: var(--text-tertiary); }
-  .legend-dot-old { width: 5px; height: 5px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); }
-  .legend-dot-new { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
-  .drift-bars { display: flex; flex-direction: column; gap: 9px; }
-  .drift-row { display: grid; grid-template-columns: 100px 1fr 44px; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; transition: background 0.15s; }
-  .drift-row.highlighted { background: rgba(201,169,110,0.05); }
-  .drift-brand-name { font-size: 10.5px; color: var(--text-secondary); font-weight: 300; }
-  .drift-track { height: 3px; background: rgba(255,255,255,0.04); border-radius: 2px; position: relative; }
-  .drift-old-marker { position: absolute; height: 9px; width: 1.5px; background: rgba(255,255,255,0.2); top: -3px; border-radius: 1px; }
-  .drift-new-marker { position: absolute; height: 9px; width: 2.5px; background: var(--gold); top: -3px; border-radius: 1px; }
-  .drift-connector { position: absolute; height: 2px; top: 0.5px; background: linear-gradient(90deg, rgba(255,255,255,0.1), var(--gold-dim)); }
-  .drift-delta { font-size: 9.5px; font-family: 'Cormorant Garamond', serif; color: var(--text-tertiary); text-align: right; }
-  .drift-delta.up { color: #8fc47a; }
-  .drift-delta.down { color: #c47a7a; }
-
-  .whitespace-alert {
-    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
-    border: 1px solid var(--gold-dim); border-radius: var(--radius);
-    padding: 1.1rem 1.25rem; display: flex; gap: 0.9rem; align-items: flex-start;
-  }
-  .alert-title { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
-  .alert-text { font-family: 'Cormorant Garamond', serif; font-size: 12.5px; font-style: italic; color: var(--text-secondary); line-height: 1.7; }
-
-  /* RIGHT PANEL */
-  .panel-right {
-    padding: 1.5rem 1.25rem;
-    background: rgba(8,10,15,0.5);
-    backdrop-filter: var(--blur);
-    display: flex; flex-direction: column; gap: 1.25rem;
-    overflow-y: auto;
-  }
-
-  .score-block {
-    background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); padding: 1.25rem;
-  }
-  .score-block.has-selection { border-color: var(--gold-dim); }
-  .score-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-  .score-block-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
-  .selected-brand-pill {
-    font-family: 'Cormorant Garamond', serif; font-size: 14px;
-    padding: 3px 12px; border-radius: 100px;
-    background: rgba(201,169,110,0.1); border: 1px solid var(--gold-dim); color: var(--gold);
-  }
-
-  .score-row { display: flex; gap: 1.25rem; margin-bottom: 1rem; }
-  .score-item { flex: 1; }
-  .score-item-label { font-size: 8.5px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 3px; }
-  .score-num { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: var(--white); line-height: 1; }
-  .score-axis-name { font-size: 9.5px; color: var(--text-tertiary); font-style: italic; font-family: 'Cormorant Garamond', serif; margin-top: 2px; }
-  .score-bar-track { width: 100%; height: 2.5px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-  .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
-
-  .position-insight {
-    background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(201,169,110,0.02) 100%);
-    border: 1px solid rgba(201,169,110,0.15); border-radius: var(--radius-sm);
-    padding: 1rem; margin-top: 0.75rem;
-  }
-  .position-insight-header { font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
-  .position-insight-quadrant { font-family: 'Cormorant Garamond', serif; font-size: 13px; font-style: italic; color: var(--white); margin-bottom: 8px; }
-  .position-insight-text { font-size: 11px; color: var(--text-secondary); line-height: 1.65; font-weight: 300; }
-
-  /* NEW DRIFT INSIGHT CARD */
-  .drift-insight-block {
-    background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem;
-    position: relative; overflow: hidden;
-  }
-  .drift-insight-block::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: var(--gold); opacity: 0.7;
-  }
-  .drift-insight-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
-  .drift-insight-text { font-size: 11px; color: var(--white); line-height: 1.65; font-weight: 300; }
-
-  .commentary-block {
-    background: var(--glass-bg); border: 1px solid var(--glass-border);
-    border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem;
-  }
-  .commentary-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-tertiary); }
-  .commentary-quote {
-    font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 300; font-style: italic; color: var(--text-secondary); line-height: 1.75;
-    border-left: 1px solid var(--gold-dim); padding-left: 0.9rem;
-  }
-  .reasoning-list { display: flex; flex-direction: column; gap: 7px; }
-  .reasoning-row { display: flex; gap: 8px; align-items: flex-start; }
-  .reasoning-tag { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 2px; }
-  .tag-x { background: rgba(201,169,110,0.1); color: var(--gold); border: 1px solid rgba(201,169,110,0.2); }
-  .tag-y { background: rgba(160,185,220,0.1); color: #a0b9dc; border: 1px solid rgba(160,185,220,0.2); }
-  .reasoning-text { font-size: 10.5px; color: var(--text-secondary); line-height: 1.6; font-weight: 300; }
-
-  .empty-state { text-align: center; padding: 2rem 1rem; }
-  .empty-state-icon { font-size: 28px; color: var(--text-tertiary); margin-bottom: 0.75rem; }
-  .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-style: italic; color: var(--text-tertiary); line-height: 1.6; }
+@media(max-width:1180px){.workspace{grid-template-columns:250px 1fr}.inspector{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}.metrics{grid-template-columns:repeat(2,1fr)}.quadrants{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.workspace{display:block}.rail,.stage,.inspector{padding:14px;border:0}.metrics,.quadrants{grid-template-columns:1fr}.sub,.status{display:none}.map-canvas{min-height:300px}}
 </style>
 </head>
+
 <body>
+<div class="app">
+  <header class="topbar">
+    <div class="lockup"><div class="logo">P</div><div><div class="title">Brand Positioning Monitor</div><div class="sub">Luxury fragrance intelligence · Agentic scoring map</div></div></div>
+    <div style="display:flex;gap:10px;align-items:center"><div class="status"><span class="status-dot"></span>Live dataset</div><button class="icon-btn active" id="toggle-drift" title="Toggle drift vectors"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></div>
+  </header>
 
-<nav>
-  <div class="nav-brand">
-    <span class="nav-brand-name">Positioning Monitor</span>
-    <span class="nav-brand-sub">Luxury Fragrance Intelligence</span>
+  <div class="workspace">
+    <aside class="rail">
+      <section class="panel"><div class="panel-head"><div><div class="eyebrow">Dataset</div><div class="panel-title">Brands</div></div></div><div class="panel-body"><input class="search" id="brand-search" placeholder="Search brands"><div class="brand-list" id="brand-list"></div></div></section>
+      <section class="panel"><div class="panel-head"><div><div class="eyebrow">Matrix</div><div class="panel-title">Axis Reading</div></div></div><div class="panel-body"><div class="axis-pill"><span>Dominance</span><span class="active">Vulnerability</span></div><div class="axis-pill" style="margin-top:8px"><span>Collective</span><span class="active">Private</span></div></div></section>
+    </aside>
+
+    <main class="stage">
+      <section class="metrics"><div class="metric"><div class="metric-value" id="metric-count">0</div><div class="metric-label">Brands mapped</div></div><div class="metric"><div class="metric-value" id="metric-vp">0</div><div class="metric-label">Vulnerable private</div></div><div class="metric"><div class="metric-value" id="metric-drift">0</div><div class="metric-label">Historical vectors</div></div><div class="metric"><div class="metric-value">VARŌ</div><div class="metric-label">Verified whitespace</div></div></section>
+
+      <section class="panel map-panel">
+        <div class="map-toolbar"><div><h1>Perceptual Map — Luxury Fragrance 2025</h1><p>Click a node or brand row to inspect scoring logic, drift, and quadrant intelligence.</p></div><button class="icon-btn" id="clear-selection" title="Clear selection"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+        <div class="canvas-wrap" id="map-container">
+          <svg class="map-canvas" viewBox="0 0 760 440" id="map-svg">
+            <defs><pattern id="grid" width="38" height="22" patternUnits="userSpaceOnUse"><path d="M38 0 L0 0 0 22" fill="none" stroke="rgba(255,255,255,.035)" stroke-width=".5"/></pattern><marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="rgba(255,204,102,.74)"/></marker></defs>
+            <rect width="760" height="440" fill="#0b0d13"/><rect width="760" height="440" fill="url(#grid)"/><rect x="380" y="0" width="380" height="220" fill="rgba(255,204,102,.035)"/>
+            <line x1="0" y1="220" x2="760" y2="220" stroke="rgba(255,255,255,.13)"/><line x1="380" y1="0" x2="380" y2="440" stroke="rgba(255,255,255,.13)"/>
+            <text class="axis-label" x="18" y="214">DOMINANCE</text><text class="axis-label" x="742" y="214" text-anchor="end">VULNERABILITY</text><text class="axis-label" x="380" y="18" text-anchor="middle">PRIVATE TRUTH</text><text class="axis-label" x="380" y="427" text-anchor="middle">COLLECTIVE MYTH</text>
+            <g id="drift-layer"><g id="drift-arrows"></g><g id="ghost-positions"></g></g><g id="brands-group"></g><circle id="pulse-ring" cx="-100" cy="-100" r="14" fill="none" stroke="rgba(255,204,102,.64)" stroke-width="1.5" opacity="0"/>
+          </svg>
+          <div class="tooltip" id="tooltip"><div class="tooltip-brand" id="tt-brand">—</div><div class="tooltip-row"><span>Voice</span><span class="tooltip-val" id="tt-x">—</span></div><div class="tooltip-row"><span>Narrative</span><span class="tooltip-val" id="tt-y">—</span></div></div>
+        </div>
+      </section>
+
+      <section class="quadrants"><div class="quadrant"><div class="quadrant-name">Dominant · Private</div><div class="quadrant-brands" id="q-dp"></div></div><div class="quadrant highlight"><div class="quadrant-name">Vulnerable · Private</div><div class="quadrant-brands" id="q-vp"></div></div><div class="quadrant"><div class="quadrant-name">Dominant · Collective</div><div class="quadrant-brands" id="q-dc"></div></div><div class="quadrant"><div class="quadrant-name">Vulnerable · Collective</div><div class="quadrant-brands" id="q-vc"></div></div></section>
+
+      <section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="eyebrow">Historical Drift</div><div class="panel-title">X Axis · 2021 to 2025</div></div></div><div class="panel-body"><div class="drift-bars" id="drift-bars"></div></div></section>
+    </main>
+
+    <aside class="inspector">
+      <section class="panel"><div class="panel-head"><div><div class="eyebrow">Inspector</div><div class="panel-title">Selected Brand</div></div><span class="selected-pill" id="selected-pill">Select brand</span></div>
+        <div class="panel-body"><div id="empty-state" class="empty">Select a brand to audit the AI reasoning and market position.</div>
+          <div id="brand-detail" class="hidden">
+            <div class="score-grid"><div class="score-card"><div class="score-label">X Score</div><div class="score-num" id="score-x">—</div><div class="score-axis-name" id="score-x-label">—</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-x"></div></div></div><div class="score-card"><div class="score-label">Y Score</div><div class="score-num" id="score-y">—</div><div class="score-axis-name" id="score-y-label">—</div><div class="score-bar-track"><div class="score-bar-fill" id="bar-y"></div></div></div></div>
+            <div class="insight"><div class="insight-title">Position Intelligence</div><div class="insight-heading" id="pi-quadrant">—</div><div class="insight-text" id="pi-text">—</div><div class="implication" id="pi-implication">—</div></div>
+            <div class="insight accent"><div class="insight-title">Historical Drift</div><div class="insight-text" id="drift-insight-text">—</div></div>
+            <div class="insight"><div class="insight-title">Agent 4 Critic Log</div><div class="quote" id="commentary-quote">—</div><div class="reasoning"><div class="reason-row"><span class="tag">X Axis</span><span class="reason-text" id="reasoning-x">—</span></div><div class="reason-row"><span class="tag">Y Axis</span><span class="reason-text" id="reasoning-y">—</span></div></div></div>
+          </div>
+        </div>
+      </section>
+    </aside>
   </div>
-  <ul class="nav-links">
-    <li><a href="#" class="active">Agentic Scoring Map</a></li>
-  </ul>
-</nav>
-
-<div class="layout">
-
-  <!-- LEFT SIDEBAR -->
-  <aside class="sidebar-left">
-    <div>
-      <div class="section-label">Brands on Map</div>
-      <div class="brand-list" id="brand-list"></div>
-    </div>
-    <div>
-      <div class="section-label">Display</div>
-      <div class="glass-card" style="padding: 2px 12px;">
-        <div class="toggle-row">
-          <span class="toggle-label">Drift arrows (2021)</span>
-          <div class="toggle on" id="toggle-drift"></div>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="section-label">Axes Matrix</div>
-      <div class="axis-block">
-        <div class="axis-name">X — Tone of Voice</div>
-        <div class="axis-poles"><span class="axis-pole">Dominance</span><div class="axis-line"></div><span class="axis-pole">Vulnerability</span></div>
-      </div>
-      <div class="axis-block">
-        <div class="axis-name">Y — Narrative Scope</div>
-        <div class="axis-poles"><span class="axis-pole">Collective</span><div class="axis-line"></div><span class="axis-pole">Private</span></div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- MAIN MAP -->
-  <main class="main-map">
-    <div class="map-header">
-      <div>
-        <div class="map-title">Perceptual Map — Luxury Fragrance 2025</div>
-        <div class="map-subtitle">Click any brand node to audit Agent 4 execution logic</div>
-      </div>
-    </div>
-
-    <!-- MAP -->
-    <div class="map-container" id="map-container">
-      <svg class="map-canvas" viewBox="0 0 760 440" id="map-svg" style="display:block;">
-        <defs>
-          <pattern id="grid" width="76" height="44" patternUnits="userSpaceOnUse">
-            <path d="M 76 0 L 0 0 0 44" fill="none" stroke="rgba(255,255,255,0.028)" stroke-width="0.5"/>
-          </pattern>
-          <marker id="arrowhead" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
-            <path d="M0,0 L0,5 L5,2.5 Z" fill="rgba(201,169,110,0.55)"/>
-          </marker>
-          <filter id="glow-gold"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-
-        <rect width="760" height="440" fill="url(#grid)"/>
-        <rect x="380" y="0" width="380" height="220" fill="rgba(201,169,110,0.012)"/>
-
-        <!-- Axes -->
-        <line x1="0" y1="220" x2="760" y2="220" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
-        <line x1="380" y1="0" x2="380" y2="440" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
-
-        <text x="12" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="start">DOMINANCE</text>
-        <text x="748" y="215" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="end">VULNERABILITY</text>
-        <text x="380" y="14" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">PRIVATE TRUTH</text>
-        <text x="380" y="434" font-family="DM Sans,sans-serif" font-size="8.5" font-weight="300" letter-spacing="2.5" fill="rgba(255,255,255,0.2)" text-anchor="middle">COLLECTIVE MYTH</text>
-
-        <!-- Drift Layer -->
-        <g id="drift-layer" style="display: block;">
-            <g id="drift-arrows"></g>
-            <g id="ghost-positions"></g>
-        </g>
-
-        <!-- Brand nodes -->
-        <g id="brands-group"></g>
-
-        <!-- Pulse ring -->
-        <circle id="pulse-ring" cx="-100" cy="-100" r="14" fill="none" stroke="rgba(201,169,110,0.4)" stroke-width="1.5" opacity="0"/>
-      </svg>
-
-      <div class="tooltip" id="tooltip">
-        <div class="tooltip-brand" id="tt-brand">—</div>
-        <div class="tooltip-row"><span>Voice register</span><span class="tooltip-val" id="tt-x">—</span></div>
-        <div class="tooltip-row"><span>Address</span><span class="tooltip-val" id="tt-y">—</span></div>
-      </div>
-    </div>
-
-    <!-- Quadrant distribution -->
-    <div>
-      <div class="section-label" style="margin-bottom:0.6rem">Quadrant Summary</div>
-      <div class="quadrant-grid">
-        <div class="quadrant-card">
-          <div class="quadrant-name">Dominant · Private</div>
-          <div class="quadrant-brands" id="q-dp">Loading...</div>
-        </div>
-        <div class="quadrant-card highlight">
-          <div class="quadrant-name">Vulnerable · Private ✦</div>
-          <div class="quadrant-brands" id="q-vp">Loading...</div>
-        </div>
-        <div class="quadrant-card">
-          <div class="quadrant-name">Dominant · Collective</div>
-          <div class="quadrant-brands" id="q-dc">Loading...</div>
-        </div>
-        <div class="quadrant-card">
-          <div class="quadrant-name">Vulnerable · Collective</div>
-          <div class="quadrant-brands" id="q-vc">Loading...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Drift Bar Chart -->
-    <div class="drift-section">
-      <div class="drift-header">
-        <span class="drift-title">Drift Analysis — X Axis 2021 → 2025</span>
-        <div class="drift-legend">
-          <div class="legend-item"><div class="legend-dot-old"></div><span>2021</span></div>
-          <div class="legend-item"><div class="legend-dot-new"></div><span>2025</span></div>
-        </div>
-      </div>
-      <div class="drift-bars" id="drift-bars"></div>
-    </div>
-
-    <div class="whitespace-alert" style="margin-top: 20px;">
-      <div class="alert-icon">◈</div>
-      <div>
-        <div class="alert-title">Agent 4 Verified White Space</div>
-        <div class="alert-text">
-          VARŌ is successfully positioned in the furthest extreme of the Vulnerable / Private quadrant. Competitors mapped strictly to Dominance, leaving intimacy highly unsaturated.
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- RIGHT PANEL -->
-  <aside class="panel-right">
-
-    <div class="score-block" id="score-block">
-      <div class="score-block-header">
-        <span class="score-block-label">Selected Brand</span>
-        <span class="selected-brand-pill" id="selected-pill">— Select a brand</span>
-      </div>
-
-      <div id="empty-state" class="empty-state">
-        <div class="empty-state-icon">◎</div>
-        <div class="empty-state-text">Click any brand node on the map to audit the AI execution logic.</div>
-      </div>
-
-      <div id="brand-detail" style="display:none;">
-        <div class="score-row">
-          <div class="score-item">
-            <div class="score-item-label">X Score</div>
-            <div class="score-num" id="score-x">—</div>
-            <div class="score-axis-name" id="score-x-label">—</div>
-            <div class="score-bar-track"><div class="score-bar-fill" id="bar-x" style="width:0%"></div></div>
-          </div>
-          <div class="score-item">
-            <div class="score-item-label">Y Score</div>
-            <div class="score-num" id="score-y">—</div>
-            <div class="score-axis-name" id="score-y-label">—</div>
-            <div class="score-bar-track"><div class="score-bar-fill" id="bar-y" style="width:0%"></div></div>
-          </div>
-        </div>
-
-        <div class="position-insight" id="position-insight">
-          <div class="position-insight-header">Position Intelligence</div>
-          <div class="position-insight-quadrant" id="pi-quadrant">—</div>
-          <div class="position-insight-text" id="pi-text">—</div>
-          <div class="insight-stat">
-            <span class="insight-stat-icon">→</span>
-            <span class="insight-stat-text" id="pi-implication">—</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NEW: STRATEGIC DRIFT INSIGHT CARD -->
-    <div class="drift-insight-block" id="drift-insight-block" style="display:none;">
-      <div class="drift-insight-label">Historical Drift (2021 → 2025)</div>
-      <div class="drift-insight-text" id="drift-insight-text">—</div>
-    </div>
-
-    <!-- Commentary -->
-    <div class="commentary-block" id="commentary-block">
-      <div class="commentary-label">Agent 4 (Critic) Execution Log</div>
-      <div id="commentary-empty" style="font-size:11px; color:var(--text-tertiary); font-style:italic; font-family:'Cormorant Garamond',serif; line-height:1.6;">
-        Select a brand to read the AI's reasoning for its position.
-      </div>
-      <div id="commentary-content" style="display:none;">
-        <div class="commentary-quote" id="commentary-quote">—</div>
-        <div class="reasoning-list" style="margin-top: 15px;">
-          <div class="reasoning-row">
-            <span class="reasoning-tag tag-x">Agent 3 (X)</span>
-            <span class="reasoning-text" id="reasoning-x">—</span>
-          </div>
-          <div class="reasoning-row">
-            <span class="reasoning-tag tag-y">Agent 3 (Y)</span>
-            <span class="reasoning-text" id="reasoning-y">—</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </aside>
 </div>
 
 <script>
-// --- INJECTED DYNAMIC DATA FROM PYTHON ---
 const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
 const driftData = __DYNAMIC_DRIFT_PLACEHOLDER__;
-
-// ── RENDER BRAND NODES & DRIFT ARROWS ──
-const svg = document.getElementById('brands-group');
-const driftArrowsGroup = document.getElementById('drift-arrows');
-const ghostPositionsGroup = document.getElementById('ghost-positions');
-
-brands.forEach((b, i) => {
-  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.setAttribute("class", "brand-node");
-  g.setAttribute("data-brand", b.name);
-  g.style.cursor = "pointer";
-
-  if (b.isVaro) {
-    g.innerHTML = `
-      <circle cx="${b.cx}" cy="${b.cy}" r="20" fill="rgba(201,169,110,0.04)"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="13" fill="rgba(201,169,110,0.07)"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="26" fill="none" stroke="rgba(201,169,110,0.1)" stroke-width="1" stroke-dasharray="3,4"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(16,12,6,0.85)" stroke="${b.color}" stroke-width="1.5"/>
-      <text x="${b.cx}" y="${b.cy-14}" font-family="Cormorant Garamond,serif" font-size="10.5" font-style="italic" font-weight="400" letter-spacing="2" fill="rgba(201,169,110,0.85)" text-anchor="middle">VARŌ</text>
-    `;
-  } else {
-    g.innerHTML = `
-      <circle cx="${b.cx}" cy="${b.cy}" r="9" fill="rgba(18,22,30,0.7)" stroke="${b.color}" stroke-width="1.2" opacity="0.85"/>
-      <circle cx="${b.cx}" cy="${b.cy}" r="4" fill="${b.color}" opacity="0.9"/>
-      <text x="${b.cx}" y="${b.cy-12}" font-family="DM Sans,sans-serif" font-size="8" font-weight="300" letter-spacing="1.2" fill="rgba(255,255,255,0.45)" text-anchor="middle">${b.name}</text>
-    `;
-  }
-
-  // Draw Drift Vectors
-  if (b.x21 !== null && b.y21 !== null) {
-      driftArrowsGroup.innerHTML += `<line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="rgba(201,169,110,0.3)" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>`;
-      ghostPositionsGroup.innerHTML += `<circle cx="${b.x21}" cy="${b.y21}" r="4.5" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2,2"/>`;
-  }
-
-  g.addEventListener('mouseenter', (e) => showTooltip(e, b));
-  g.addEventListener('mousemove', (e) => moveTooltip(e));
-  g.addEventListener('mouseleave', () => hideTooltip());
-  g.addEventListener('click', () => selectBrand(b.name));
-  svg.appendChild(g);
-});
-
-// ── DRIFT TOGGLE ──
-const driftToggle = document.getElementById('toggle-drift');
-const driftLayer = document.getElementById('drift-layer');
-driftToggle.addEventListener('click', function() {
-  this.classList.toggle('on');
-  driftLayer.style.display = this.classList.contains('on') ? 'block' : 'none';
-});
-
-// ── DRIFT BARS ──
-const driftEl = document.getElementById('drift-bars');
-driftData.forEach(d => {
-  const row = document.createElement('div');
-  row.className = 'drift-row';
-  row.dataset.brand = d.brand;
-  const connLeft = d.old !== null ? Math.min(d.old, d.curr) : d.curr;
-  const connW = d.old !== null ? Math.abs(d.curr - d.old) : 0;
-  row.innerHTML = `
-    <span class="drift-brand-name">${d.brand}</span>
-    <div class="drift-track">
-      ${d.old !== null ? `<div class="drift-old-marker" style="left:${d.old}%"></div>` : ''}
-      ${connW > 0 ? `<div class="drift-connector" style="left:${connLeft}%;width:${connW}%"></div>` : ''}
-      <div class="drift-new-marker" style="left:${d.curr}%"></div>
-    </div>
-    <span class="drift-delta ${d.dir}">${d.delta}</span>
-  `;
-  driftEl.appendChild(row);
-});
-
-const quadrantIntelligence = {
-  "dominant-collective": {
-    label: "Dominant · Collective",
-    text: "The most populated territory. Brands here speak with institutional authority toward a broad cultural audience. High collision risk — differentiation is hard when everyone speaks the language of legacy.",
-    implication: "Brands drifting deeper here risk commoditisation."
-  },
-  "dominant-private": {
-    label: "Dominant · Private",
-    text: "A defensible position. These brands speak with authority but to a personal inner world. The wearer feels selected rather than inducted.",
-    implication: "Entry requires credible craft heritage."
-  },
-  "vulnerable-private": {
-    label: "Vulnerable · Private ✦",
-    text: "Brands here speak directly to emotional memory without asserting authority. Maison Margiela validated this space. VARŌ targets the deepest corner.",
-    implication: "VARŌ's chosen territory. High differentiation."
-  },
-  "vulnerable-collective": {
-    label: "Vulnerable · Collective",
-    text: "Unoccupied. No brand speaks with emotional openness toward a shared cultural world simultaneously.",
-    implication: "The most interesting structural gap in the category."
-  }
+const qi = {
+ "dominant-collective":{label:"Dominant · Collective",text:"The densest competitive territory. Brands speak with institutional authority toward a broad cultural audience.",implication:"Drift deeper here increases collision risk."},
+ "dominant-private":{label:"Dominant · Private",text:"A defensible position. The brand speaks with authority, but the address remains personal and selective.",implication:"Entry requires credible craft heritage."},
+ "vulnerable-private":{label:"Vulnerable · Private",text:"The intimacy territory. Brands use memory, softness, and emotional specificity instead of overt authority.",implication:"VARŌ's chosen territory. High differentiation."},
+ "vulnerable-collective":{label:"Vulnerable · Collective",text:"A rare structural gap where emotional openness meets shared cultural address.",implication:"Potential future expansion space."}
 };
+const esc=v=>String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+const svg=document.getElementById("brands-group"), driftArrows=document.getElementById("drift-arrows"), ghosts=document.getElementById("ghost-positions"), list=document.getElementById("brand-list"), tooltip=document.getElementById("tooltip"), map=document.getElementById("map-container"), pulse=document.getElementById("pulse-ring");
 
-let qDP = [], qVP = [], qDC = [], qVC = [];
-brands.forEach(b => {
-    let s = scores[b.name];
-    if(s.x < 5 && s.y < 5) qDC.push(b.name);
-    else if(s.x < 5 && s.y >= 5) qDP.push(b.name);
-    else if(s.x >= 5 && s.y < 5) qVC.push(b.name);
-    else qVP.push(b.name);
-});
-document.getElementById('q-dc').textContent = qDC.join(", ") || "Empty";
-document.getElementById('q-dp').textContent = qDP.join(", ") || "Empty";
-document.getElementById('q-vc').textContent = qVC.join(", ") || "Empty";
-document.getElementById('q-vp').textContent = qVP.join(", ") || "Empty";
-
-const brandListEl = document.getElementById('brand-list');
-brands.forEach(b => {
-  const s = scores[b.name];
-  const item = document.createElement('div');
-  item.className = 'brand-item';
-  item.dataset.brand = b.name;
-  item.innerHTML = `
-    <div class="brand-dot" style="background:${b.color}"></div>
-    <span class="brand-item-name">${b.name}</span>
-    <span class="brand-coords">${s.x} · ${s.y}</span>
-  `;
-  item.addEventListener('click', () => selectBrand(b.name));
-  brandListEl.appendChild(item);
-});
-
-const pulseRing = document.getElementById('pulse-ring');
-
-function selectBrand(name) {
-  const b = brands.find(br => br.name === name);
-  const s = scores[name];
-  const c = commentary[name];
-
-  const qKey = (s.x >= 5 ? "vulnerable" : "dominant") + "-" + (s.y >= 5 ? "private" : "collective");
-  const qi = quadrantIntelligence[qKey];
-
-  document.querySelectorAll('.brand-item').forEach(el => {
-    el.classList.remove('selected-focus');
-    if (el.dataset.brand === name) el.classList.add('selected-focus');
-  });
-
-  document.querySelectorAll('.brand-node').forEach(node => {
-    node.style.opacity = node.dataset.brand === name ? '1' : '0.22';
-  });
-
-  pulseRing.setAttribute('cx', b.cx);
-  pulseRing.setAttribute('cy', b.cy);
-  pulseRing.setAttribute('opacity', '1');
-
-  document.querySelectorAll('.drift-row').forEach(row => {
-    const shortName = name === "Maison Margiela" ? "M. Margiela" : name;
-    row.classList.toggle('highlighted', row.dataset.brand === shortName || row.dataset.brand === name);
-  });
-
-  document.getElementById('selected-pill').textContent = name;
-  document.getElementById('score-block').classList.add('has-selection');
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('brand-detail').style.display = 'block';
-
-  document.getElementById('score-x').textContent = s.x;
-  document.getElementById('score-y').textContent = s.y;
-  document.getElementById('score-x-label').textContent = s.xLabel;
-  document.getElementById('score-y-label').textContent = s.yLabel;
-  document.getElementById('bar-x').style.width = (s.x * 10) + '%';
-  document.getElementById('bar-y').style.width = (s.y * 10) + '%';
-
-  document.getElementById('pi-quadrant').textContent = qi.label;
-  document.getElementById('pi-text').textContent = qi.text;
-  document.getElementById('pi-implication').textContent = qi.implication;
-
-  // POPULATE THE NEW DRIFT INSIGHT CARD
-  document.getElementById('drift-insight-block').style.display = 'flex';
-  // Highlight the delta inside the text to make it actionable
-  let driftText = c.drift_insight;
-  document.getElementById('drift-insight-text').innerHTML = driftText.replace("Insight:", "<br><br><span style='color: var(--gold); font-family: Cormorant Garamond, serif; font-style: italic; font-size: 13px;'>Insight:</span>");
-
-  document.getElementById('commentary-empty').style.display = 'none';
-  document.getElementById('commentary-content').style.display = 'block';
-  document.getElementById('commentary-quote').textContent = c.quote;
-  document.getElementById('reasoning-x').textContent = c.rx;
-  document.getElementById('reasoning-y').textContent = c.ry;
-}
-
-const tooltip = document.getElementById('tooltip');
-const mapContainer = document.getElementById('map-container');
-
-function showTooltip(e, b) {
-  const s = scores[b.name];
-  document.getElementById('tt-brand').textContent = b.name;
-  document.getElementById('tt-x').textContent = s.x + ' / 10';
-  document.getElementById('tt-y').textContent = s.y + ' / 10';
-  tooltip.classList.add('visible');
-}
-function moveTooltip(e) {
-  const rect = mapContainer.getBoundingClientRect();
-  let left = e.clientX - rect.left + 16;
-  let top = e.clientY - rect.top - 12;
-  if (left + 180 > rect.width) left -= 196;
-  tooltip.style.left = left + 'px';
-  tooltip.style.top = top + 'px';
-}
-function hideTooltip() { tooltip.classList.remove('visible'); }
-
-document.getElementById('map-svg').addEventListener('click', (e) => {
-  if (e.target.tagName === 'rect' || e.target.tagName === 'line' || e.target.tagName === 'text') {
-    document.querySelectorAll('.brand-node').forEach(n => { n.style.opacity = '1'; });
-    document.querySelectorAll('.brand-item').forEach(el => el.classList.remove('selected-focus'));
-    document.querySelectorAll('.drift-row').forEach(r => r.classList.remove('highlighted'));
-    pulseRing.setAttribute('opacity', '0');
-    pulseRing.setAttribute('cx', '-100');
-    document.getElementById('score-block').classList.remove('has-selection');
-    document.getElementById('empty-state').style.display = 'block';
-    document.getElementById('brand-detail').style.display = 'none';
-    document.getElementById('selected-pill').textContent = '— Select a brand';
-    document.getElementById('drift-insight-block').style.display = 'none';
-    document.getElementById('commentary-empty').style.display = 'block';
-    document.getElementById('commentary-content').style.display = 'none';
-  }
-});
+function renderMap(){brands.forEach(b=>{const g=document.createElementNS("http://www.w3.org/2000/svg","g");g.classList.add("brand-node");g.dataset.brand=b.name;g.style.cursor="pointer";const label=esc(b.name==="VARO"?"VARŌ":b.name);g.innerHTML=b.isVaro?`<circle cx="${b.cx}" cy="${b.cy}" r="24" fill="rgba(255,204,102,.08)"/><circle cx="${b.cx}" cy="${b.cy}" r="15" fill="rgba(255,204,102,.12)"/><circle cx="${b.cx}" cy="${b.cy}" r="8" fill="#11141c" stroke="${b.color}" stroke-width="2"/><text x="${b.cx}" y="${b.cy-17}" font-family="Inter" font-size="10" font-weight="800" letter-spacing="1.4" fill="${b.color}" text-anchor="middle">${label}</text>`:`<circle cx="${b.cx}" cy="${b.cy}" r="9" fill="#11141c" stroke="${b.color}" stroke-width="1.6"/><circle cx="${b.cx}" cy="${b.cy}" r="3.6" fill="${b.color}"/><text x="${b.cx}" y="${b.cy-13}" font-family="Inter" font-size="8.2" font-weight="600" fill="rgba(247,247,251,.56)" text-anchor="middle">${label}</text>`;
+if(b.x21!==null&&b.y21!==null){driftArrows.innerHTML+=`<line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="rgba(255,204,102,.36)" stroke-width="1.3" stroke-dasharray="4,4" marker-end="url(#arrowhead)"/>`;ghosts.innerHTML+=`<circle cx="${b.x21}" cy="${b.y21}" r="4.5" fill="none" stroke="rgba(247,247,251,.22)" stroke-dasharray="2,2"/>`}
+g.onmouseenter=e=>showTip(e,b);g.onmousemove=moveTip;g.onmouseleave=()=>tooltip.classList.remove("visible");g.onclick=()=>selectBrand(b.name);svg.appendChild(g)})}
+function renderList(f=""){list.innerHTML="";brands.filter(b=>b.name.toLowerCase().includes(f.toLowerCase())).forEach(b=>{const s=scores[b.name], el=document.createElement("div");el.className="brand-item";el.dataset.brand=b.name;el.innerHTML=`<div class="brand-dot" style="background:${b.color};color:${b.color}"></div><span class="brand-name">${esc(b.name==="VARO"?"VARŌ":b.name)}</span><span class="brand-coords">${s.x} · ${s.y}</span>`;el.onclick=()=>selectBrand(b.name);list.appendChild(el)})}
+function renderDrift(){const el=document.getElementById("drift-bars");driftData.forEach(d=>{const r=document.createElement("div"), l=d.old!==null?Math.min(d.old,d.curr):d.curr,w=d.old!==null?Math.abs(d.curr-d.old):0;r.className="drift-row";r.dataset.brand=d.brand;r.innerHTML=`<span class="drift-brand-name">${esc(d.brand)}</span><div class="drift-track">${d.old!==null?`<div class="drift-old-marker" style="left:${d.old}%"></div>`:""}${w>0?`<div class="drift-connector" style="left:${l}%;width:${w}%"></div>`:""}<div class="drift-new-marker" style="left:${d.curr}%"></div></div><span class="drift-delta ${d.dir}">${esc(d.delta)}</span>`;r.onclick=()=>selectBrand(d.brand==="M. Margiela"?"Maison Margiela":d.brand);el.appendChild(r)})}
+function renderQuadrants(){let dp=[],vp=[],dc=[],vc=[];brands.forEach(b=>{const s=scores[b.name],n=b.name==="VARO"?"VARŌ":b.name;if(s.x<5&&s.y<5)dc.push(n);else if(s.x<5&&s.y>=5)dp.push(n);else if(s.x>=5&&s.y<5)vc.push(n);else vp.push(n)});q_dc.textContent=dc.join(", ")||"Empty";q_dp.textContent=dp.join(", ")||"Empty";q_vc.textContent=vc.join(", ")||"Empty";q_vp.textContent=vp.join(", ")||"Empty";document.getElementById("metric-count").textContent=brands.length;document.getElementById("metric-vp").textContent=vp.length;document.getElementById("metric-drift").textContent=driftData.filter(d=>d.old!==null).length}
+function selectBrand(name){const b=brands.find(x=>x.name===name),s=scores[name],c=commentary[name];if(!b)return;const key=`${s.x>=5?"vulnerable":"dominant"}-${s.y>=5?"private":"collective"}`,info=qi[key];document.querySelectorAll(".brand-item").forEach(e=>e.classList.toggle("selected-focus",e.dataset.brand===name));document.querySelectorAll(".brand-node").forEach(e=>e.style.opacity=e.dataset.brand===name?"1":".24");document.querySelectorAll(".drift-row").forEach(e=>e.classList.toggle("highlighted",e.dataset.brand===name||e.dataset.brand===(name==="Maison Margiela"?"M. Margiela":name)));pulse.setAttribute("cx",b.cx);pulse.setAttribute("cy",b.cy);pulse.setAttribute("opacity","1");selected_pill.textContent=name==="VARO"?"VARŌ":name;empty_state.classList.add("hidden");brand_detail.classList.remove("hidden");score_x.textContent=s.x;score_y.textContent=s.y;score_x_label.textContent=s.xLabel;score_y_label.textContent=s.yLabel;bar_x.style.width=s.x*10+"%";bar_y.style.width=s.y*10+"%";pi_quadrant.textContent=info.label;pi_text.textContent=info.text;pi_implication.textContent=info.implication;drift_insight_text.innerHTML=esc(c.drift_insight).replace("Insight:","<br><br><strong style='color:var(--gold)'>Insight:</strong>");commentary_quote.textContent=c.quote;reasoning_x.textContent=c.rx;reasoning_y.textContent=c.ry}
+function clearSel(){document.querySelectorAll(".brand-node").forEach(e=>e.style.opacity="1");document.querySelectorAll(".brand-item,.drift-row").forEach(e=>e.classList.remove("selected-focus","highlighted"));pulse.setAttribute("opacity","0");selected_pill.textContent="Select brand";empty_state.classList.remove("hidden");brand_detail.classList.add("hidden")}
+function showTip(e,b){const s=scores[b.name];tt_brand.textContent=b.name==="VARO"?"VARŌ":b.name;tt_x.textContent=s.x+" / 10";tt_y.textContent=s.y+" / 10";tooltip.classList.add("visible");moveTip(e)}
+function moveTip(e){const r=map.getBoundingClientRect();let l=e.clientX-r.left+14,t=e.clientY-r.top+14;if(l+190>r.width)l-=204;tooltip.style.left=l+"px";tooltip.style.top=t+"px"}
+document.getElementById("toggle-drift").onclick=function(){this.classList.toggle("active");drift_layer.style.display=this.classList.contains("active")?"block":"none"}
+document.getElementById("clear-selection").onclick=clearSel;document.getElementById("brand-search").oninput=e=>renderList(e.target.value);document.getElementById("map-svg").onclick=e=>{if(!e.target.closest(".brand-node"))clearSel()}
+const q_dc=document.getElementById("q-dc"),q_dp=document.getElementById("q-dp"),q_vc=document.getElementById("q-vc"),q_vp=document.getElementById("q-vp"),selected_pill=document.getElementById("selected-pill"),empty_state=document.getElementById("empty-state"),brand_detail=document.getElementById("brand-detail"),score_x=document.getElementById("score-x"),score_y=document.getElementById("score-y"),score_x_label=document.getElementById("score-x-label"),score_y_label=document.getElementById("score-y-label"),bar_x=document.getElementById("bar-x"),bar_y=document.getElementById("bar-y"),pi_quadrant=document.getElementById("pi-quadrant"),pi_text=document.getElementById("pi-text"),pi_implication=document.getElementById("pi-implication"),drift_insight_text=document.getElementById("drift-insight-text"),commentary_quote=document.getElementById("commentary-quote"),reasoning_x=document.getElementById("reasoning-x"),reasoning_y=document.getElementById("reasoning-y"),drift_layer=document.getElementById("drift-layer");
+renderMap();renderList();renderDrift();renderQuadrants();
 </script>
 </body>
 </html>
