@@ -14,7 +14,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- 2. DATA ROUTING ---
+# --- 2. DATA ROUTING & INJECTION ---
 def get_valid_path(*paths):
     for path in paths:
         if os.path.exists(path):
@@ -42,7 +42,6 @@ if os.path.exists(hist_path):
 else:
     hist_scores = {}
 
-# PageCoder Palette: Monochrome with subtle pastel hints, VARO is Neon Green
 color_map = {
     "Chanel": "#ffffff", "Hermès": "#fca5a5", "YSL": "#fcd34d", "Maison Margiela": "#c4b5fd",
     "Jean Paul Gaultier": "#93c5fd", "Viktor & Rolf": "#f9a8d4", "Mancera": "#fdba74",
@@ -69,7 +68,6 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    # SVG Math mapped to viewBox="0 0 800 400"
     cx = 50 + (x / 10.0) * 700
     cy = 40 + ((10.0 - y) / 10.0) * 320
 
@@ -98,6 +96,9 @@ for brand, data in live_scores.items():
         "isVaro": (brand == "VARŌ" or brand == "VARO")
     })
 
+    x_label = "Vulnerability" if x >= 5 else "Dominance"
+    y_label = "Private Truth" if y >= 5 else "Collective Myth"
+
     js_scores[brand] = {"x": round(x, 2), "y": round(y, 2)}
     js_commentary[brand] = {
         "philosophy": kb_path if not os.path.exists(kb_path) else json.load(open(kb_path, "r", encoding="utf-8")).get(
@@ -108,14 +109,14 @@ for brand, data in live_scores.items():
         "drift": drift_insights.get(brand, "No drift data.")
     }
 
-# --- 3. THE PAGECODER.AI HTML TEMPLATE ---
+# --- 3. THE UPDATED HTML TEMPLATE (ANIMATED & RESPONSIVE) ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Linguistic DNA</title>
+<title>Brand Positioning Monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -126,7 +127,7 @@ custom_html_template = """
   --border: #1e212b;
   --text-main: #f8f9fa;
   --text-muted: #8b949e;
-  --accent: #00e599; /* PageCoder Neon Green */
+  --accent: #00e599; 
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -146,9 +147,9 @@ body {
 nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 24px 40px;
+  position: absolute; top: 0; width: 100%; z-index: 100;
 }
-.logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
-.logo svg { width: 20px; height: 20px; fill: var(--text-main); }
+.logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
 .nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--text-muted); }
 .nav-btn {
   border: 1px solid var(--accent); color: var(--accent);
@@ -157,32 +158,52 @@ nav {
 }
 .nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
 
-/* HERO */
-.hero {
-  text-align: center; padding: 80px 20px 40px;
+/* PARALLAX HERO */
+.hero-container {
+  height: 85vh; /* Provides scrolling space */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: center;
+  padding: 0 20px;
 }
 .eyebrow {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   color: var(--text-muted); letter-spacing: 0.3em; text-transform: uppercase;
   margin-bottom: 24px;
 }
-.hero h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; }
-.hero p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+.hero-container h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
+.hero-container p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+/* CONTENT SLIDE-UP WRAPPER */
+.content-wrapper {
+  position: relative;
+  z-index: 10;
+  background-color: var(--bg);
+  box-shadow: 0 -30px 60px rgba(9, 10, 15, 0.95);
+  border-top: 1px solid var(--border);
+  padding-top: 60px;
+  padding-bottom: 100px;
+}
 
 /* TOGGLE PILL */
-.toggle-wrapper { display: flex; justify-content: center; margin-bottom: 60px; }
+.toggle-wrapper { display: flex; justify-content: center; margin-bottom: 40px; }
 .pill-container {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: 100px; display: flex; padding: 4px; gap: 4px;
 }
 .pill-btn {
   padding: 8px 24px; font-size: 13px; border-radius: 100px;
-  cursor: pointer; color: var(--text-muted); transition: 0.2s;
+  cursor: pointer; color: var(--text-muted); transition: 0.2s; font-weight: 500;
 }
 .pill-btn.active { background: rgba(0, 229, 153, 0.1); color: var(--accent); }
 
 /* MAP CONTAINER */
-.map-section { max-width: 1000px; margin: 0 auto; position: relative; }
+.map-section { max-width: 1000px; margin: 0 auto; position: relative; padding: 0 20px; }
 svg { width: 100%; height: auto; display: block; overflow: visible; }
 .axis-line { stroke: #2a2e38; stroke-width: 1; }
 .axis-label { fill: #4a505e; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
@@ -190,24 +211,25 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 .brand-node { cursor: pointer; transition: transform 0.2s ease; transform-origin: center; }
 .brand-node:hover { transform: scale(1.15); }
 
-/* TOOLTIP */
+/* BULLETPROOF TOOLTIP */
 .tooltip {
-  position: absolute; background: var(--bg); border: 1px solid var(--border);
+  position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--border);
   padding: 12px; border-radius: 8px; pointer-events: none; opacity: 0;
-  transition: opacity 0.2s; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transition: opacity 0.2s; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
 }
 .tt-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--text-main); }
 .tt-coord { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); }
 
-/* DATA GRID (Replaces sidebars) */
+/* DATA GRID */
 .data-grid {
-  max-width: 1000px; margin: 80px auto;
-  display: grid; grid-template-columns: 300px 1fr; gap: 60px;
-  border-top: 1px solid var(--border); padding-top: 60px;
+  max-width: 1000px; margin: 60px auto 0;
+  display: grid; grid-template-columns: 280px 1fr; gap: 60px;
+  padding: 0 20px;
 }
 
 /* LEFT COLUMN: BRAND LIST */
-.list-title { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
+.list-title { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
 .brand-list { display: flex; flex-direction: column; gap: 4px; }
 .list-item {
   display: flex; align-items: center; justify-content: space-between;
@@ -232,7 +254,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 .insight-coords { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--accent); }
 
 .info-block { margin-bottom: 32px; }
-.info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; font-weight: 600; }
 .info-text { font-size: 15px; line-height: 1.6; color: var(--text-main); }
 .info-quote { font-size: 20px; line-height: 1.5; color: var(--text-muted); border-left: 2px solid var(--border); padding-left: 20px; font-style: italic; }
 
@@ -245,8 +267,8 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 
 /* EXECUTIVE BRIEFING */
 .briefing {
-  max-width: 800px; margin: 100px auto 100px;
-  border-top: 1px solid var(--border); padding-top: 60px;
+  max-width: 1000px; margin: 80px auto 0;
+  border-top: 1px solid var(--border); padding-top: 60px; padding-left: 20px; padding-right: 20px;
 }
 .briefing h2 { font-size: 40px; margin-bottom: 40px; text-align: center; }
 .b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
@@ -256,122 +278,142 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 .b-full h3 { font-size: 18px; margin-bottom: 12px; color: var(--accent); }
 .b-full p { font-size: 15px; color: var(--text-main); line-height: 1.7; }
 
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+  nav { padding: 20px; }
+  .nav-links, .nav-btn { display: none; } /* Simplify nav on mobile */
+  .hero-container h1 { font-size: 48px; }
+  .hero-container p { font-size: 14px; }
+
+  .data-grid { grid-template-columns: 1fr; gap: 40px; margin-top: 40px; }
+  .b-grid { grid-template-columns: 1fr; gap: 24px; }
+  .insight-brand { font-size: 36px; }
+  .info-quote { font-size: 16px; }
+
+  /* Adjust SVG text scaling for mobile */
+  .axis-label { font-size: 14px; } 
+}
 </style>
 </head>
 <body>
 
 <nav>
   <div class="logo">
-    <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2z"/></svg>
-    PageCoder.ai <span style="font-weight:400; color:var(--text-muted); margin-left:8px;">| Brand Monitor</span>
+    <span style="color:var(--text-main);">Positioning Monitor</span>
+    <span style="color:var(--text-muted); font-weight:400; margin-left:8px;">| Luxury Intelligence</span>
   </div>
   <div class="nav-links">
     <span>Map</span>
     <span>Methodology</span>
-    <span>Agent Logs</span>
+    <span>Audit Logs</span>
   </div>
-  <div class="nav-btn">> Export Report — free</div>
+  <div class="nav-btn">Export Matrix</div>
 </nav>
 
-<header class="hero">
+<!-- STICKY PARALLAX HERO -->
+<header class="hero-container" id="hero">
   <div class="eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
   <h1 class="serif">Your Linguistic DNA</h1>
-  <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what an average luxury landscape fingerprint looks like.</p>
+  <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
+</header>
 
+<!-- CONTENT WRAPPER THAT SLIDES OVER HERO -->
+<div class="content-wrapper">
   <div class="toggle-wrapper">
     <div class="pill-container">
       <div class="pill-btn active" id="btn-current">Current Matrix</div>
       <div class="pill-btn" id="btn-drift">Drift Vectors</div>
     </div>
   </div>
-</header>
 
-<section class="map-section" id="map-wrapper">
-  <svg viewBox="0 0 800 400" id="map-svg">
-    <!-- Axes -->
-    <line x1="0" y1="200" x2="800" y2="200" class="axis-line" />
-    <line x1="400" y1="0" x2="400" y2="400" class="axis-line" />
+  <section class="map-section" id="map-wrapper">
+    <svg viewBox="0 0 800 400" id="map-svg">
+      <line x1="0" y1="200" x2="800" y2="200" class="axis-line" />
+      <line x1="400" y1="0" x2="400" y2="400" class="axis-line" />
 
-    <text x="0" y="190" class="axis-label" text-anchor="start">DOMINANCE</text>
-    <text x="800" y="190" class="axis-label" text-anchor="end">VULNERABILITY</text>
-    <text x="410" y="10" class="axis-label" text-anchor="start">PRIVATE TRUTH</text>
-    <text x="410" y="395" class="axis-label" text-anchor="start">COLLECTIVE MYTH</text>
+      <text x="0" y="190" class="axis-label" text-anchor="start">DOMINANCE</text>
+      <text x="800" y="190" class="axis-label" text-anchor="end">VULNERABILITY</text>
+      <text x="410" y="15" class="axis-label" text-anchor="start">PRIVATE TRUTH</text>
+      <text x="410" y="390" class="axis-label" text-anchor="start">COLLECTIVE MYTH</text>
 
-    <g id="drift-layer" style="display:none;"></g>
-    <g id="brands-layer"></g>
-  </svg>
+      <g id="drift-layer" style="display:none;"></g>
+      <g id="brands-layer"></g>
+    </svg>
+  </section>
 
-  <div class="tooltip" id="tooltip">
-    <div class="tt-title" id="tt-brand">Brand</div>
-    <div class="tt-coord" id="tt-coord">0.0, 0.0</div>
-  </div>
-</section>
-
-<section class="data-grid">
-  <div class="brands-column">
-    <div class="list-title">Entities Mapped</div>
-    <div class="brand-list" id="brand-list"></div>
-  </div>
-
-  <div class="insight-column">
-    <div class="empty-state" id="empty-state">
-      Select a brand from the map or list to inspect the AI audit logs.
+  <section class="data-grid">
+    <div class="brands-column">
+      <div class="list-title">Entities Mapped</div>
+      <div class="brand-list" id="brand-list"></div>
     </div>
 
-    <div class="insight-panel" id="insight-panel">
-      <div class="insight-header">
-        <div>
-          <h2 class="serif insight-brand" id="detail-brand">Brand Name</h2>
-          <div class="insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
-        </div>
+    <div class="insight-column">
+      <div class="empty-state" id="empty-state">
+        Select a brand from the map or list to inspect the AI audit logs.
       </div>
 
-      <div class="info-block">
-        <div class="info-label">Extracted Primary Source</div>
-        <div class="info-quote serif" id="detail-philosophy">"Philosophy goes here."</div>
-      </div>
+      <div class="insight-panel" id="insight-panel">
+        <div class="insight-header">
+          <div>
+            <h2 class="serif insight-brand" id="detail-brand">Brand Name</h2>
+            <div class="insight-coords" id="detail-coords">[ X: 0.0, Y: 0.0 ]</div>
+          </div>
+        </div>
 
-      <div class="info-block">
-        <div class="info-label">Agent 4 Execution Log</div>
-        <div class="code-box">
-          <div style="color:var(--text-main); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
-          <div id="detail-audit">Audit log text.</div>
+        <div class="info-block">
+          <div class="info-label">Extracted Primary Source</div>
+          <div class="info-quote serif" id="detail-philosophy">"Philosophy goes here."</div>
         </div>
-        <div class="code-box">
-          <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--text-muted)">Reasoning</span>
-        </div>
-        <div class="code-box">
-          <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--text-muted)">Reasoning</span>
-        </div>
-      </div>
 
-      <div class="info-block">
-        <div class="info-label">Historical Drift Insight</div>
-        <div class="info-text" id="detail-drift">Drift text.</div>
+        <div class="info-block">
+          <div class="info-label">Agent 4 Execution Log</div>
+          <div class="code-box">
+            <div style="color:var(--text-main); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
+            <div id="detail-audit">Audit log text.</div>
+          </div>
+          <div class="code-box">
+            <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--text-muted)">Reasoning</span>
+          </div>
+          <div class="code-box">
+            <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--text-muted)">Reasoning</span>
+          </div>
+        </div>
+
+        <div class="info-block">
+          <div class="info-label">Historical Drift Insight</div>
+          <div class="info-text" id="detail-drift">Drift text.</div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="briefing">
-  <h2 class="serif">Strategic Architecture</h2>
-  <div class="b-grid">
-    <div class="b-col">
-      <h3>Tone of Voice (X-Axis)</h3>
-      <p>Dominance is the voice of the monument, relying on authority, legacy, and commands (e.g., Creed). Vulnerability is the voice of the confidant, stripping away the pedestal in favor of intimacy, somatic language, and emotional exposure (e.g., Byredo).</p>
+  <section class="briefing">
+    <h2 class="serif">Strategic Architecture</h2>
+    <div class="b-grid">
+      <div class="b-col">
+        <h3>Tone of Voice (X-Axis)</h3>
+        <p>Dominance is the voice of the monument, relying on authority, legacy, and commands (e.g., Creed). Vulnerability is the voice of the confidant, stripping away the pedestal in favor of intimacy, somatic language, and emotional exposure (e.g., Byredo).</p>
+      </div>
+      <div class="b-col">
+        <h3>Narrative Scope (Y-Axis)</h3>
+        <p>Collective Myth constructs a universal, shared cultural religion positioning itself as a global institution (e.g., Chanel). Private Truth addresses the hyper-specific inner life of the individual, reading like a personal diary entry (e.g., Maison Margiela).</p>
+      </div>
     </div>
-    <div class="b-col">
-      <h3>Narrative Scope (Y-Axis)</h3>
-      <p>Collective Myth constructs a universal, shared cultural religion positioning itself as a global institution (e.g., Chanel). Private Truth addresses the hyper-specific inner life of the individual, reading like a personal diary entry (e.g., Maison Margiela).</p>
+    <div class="b-full">
+      <h3>The Commercial Imperative</h3>
+      <p>By plotting legacy competitors, a glaring structural void emerges in the High Vulnerability / High Private Truth quadrant. Most luxury houses remain trapped in Dominance and Collective Myth. The VARŌ concept is engineered specifically to exploit this exact whitespace, offering radical intimacy to a modern consumer who has outgrown traditional status signaling.</p>
     </div>
-  </div>
-  <div class="b-full">
-    <h3>The Commercial Imperative</h3>
-    <p>By plotting legacy competitors, a glaring structural void emerges in the High Vulnerability / High Private Truth quadrant. Most luxury houses remain trapped in Dominance and Collective Myth. The VARŌ concept is engineered specifically to exploit this exact whitespace, offering radical intimacy to a modern consumer who has outgrown traditional status signaling.</p>
-  </div>
-</section>
+  </section>
+</div>
+
+<!-- ABSOLUTE POSITIONED TOOLTIP APPENDED TO BODY -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-brand">Brand</div>
+  <div class="tt-coord" id="tt-coord">0.0, 0.0</div>
+</div>
 
 <script>
+// --- DATA INJECTION ---
 const brands = __DYNAMIC_BRANDS_PLACEHOLDER__;
 const scores = __DYNAMIC_SCORES_PLACEHOLDER__;
 const commentary = __DYNAMIC_COMMENTARY_PLACEHOLDER__;
@@ -381,16 +423,26 @@ const svgDrift = document.getElementById('drift-layer');
 const listEl = document.getElementById('brand-list');
 const tooltip = document.getElementById('tooltip');
 
-// RENDER MAP
+// --- SCROLL ANIMATION (PARALLAX HERO) ---
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  const hero = document.getElementById('hero');
+  // Fade out text gradually as you scroll down 300px
+  hero.style.opacity = Math.max(1 - (scrollY / 350), 0);
+  // Optional: subtle downward push for parallax feel
+  hero.style.transform = `translateY(${scrollY * 0.3}px)`;
+});
+
+// --- RENDER MAP ---
 brands.forEach(b => {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "brand-node");
 
   if(b.isVaro) {
     g.innerHTML = `
-      <circle cx="${b.cx}" cy="${b.cy}" r="12" fill="rgba(0, 229, 153, 0.2)" />
+      <circle cx="${b.cx}" cy="${b.cy}" r="14" fill="rgba(0, 229, 153, 0.15)" />
       <circle cx="${b.cx}" cy="${b.cy}" r="6" fill="${b.color}" />
-      <text x="${b.cx}" y="${b.cy - 16}" fill="${b.color}" font-family="JetBrains Mono" font-size="10" text-anchor="middle">VARŌ</text>
+      <text x="${b.cx}" y="${b.cy - 18}" fill="${b.color}" font-family="JetBrains Mono" font-size="10" text-anchor="middle">VARŌ</text>
     `;
   } else {
     g.innerHTML = `
@@ -401,31 +453,37 @@ brands.forEach(b => {
 
   if (b.x21 !== null) {
     svgDrift.innerHTML += `
-      <line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="${b.color}" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-      <circle cx="${b.x21}" cy="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.4" />
+      <line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="${b.color}" stroke-width="1.5" stroke-dasharray="2,3" opacity="0.4" />
+      <circle cx="${b.x21}" cy="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.5" />
     `;
   }
 
-  g.onmouseenter = (e) => {
+  // BULLETPROOF HOVER FIX (using pageX/pageY instead of container math)
+  g.addEventListener('mouseenter', (e) => {
     document.getElementById('tt-brand').textContent = b.name;
     document.getElementById('tt-coord').textContent = `[ ${scores[b.name].x}, ${scores[b.name].y} ]`;
     tooltip.style.opacity = 1;
     moveTT(e);
-  };
-  g.onmousemove = moveTT;
-  g.onmouseleave = () => tooltip.style.opacity = 0;
-  g.onclick = () => selectBrand(b.name);
+  });
+
+  g.addEventListener('mousemove', moveTT);
+
+  g.addEventListener('mouseleave', () => {
+    tooltip.style.opacity = 0;
+  });
+
+  g.addEventListener('click', () => selectBrand(b.name));
 
   svgBrands.appendChild(g);
 });
 
 function moveTT(e) {
-  const rect = document.getElementById('map-wrapper').getBoundingClientRect();
-  tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
-  tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+  // Uses absolute page coordinates so it never breaks when scrolled
+  tooltip.style.left = (e.pageX + 15) + 'px';
+  tooltip.style.top = (e.pageY + 15) + 'px';
 }
 
-// RENDER LIST
+// --- RENDER LIST ---
 brands.forEach(b => {
   const item = document.createElement('div');
   item.className = 'list-item';
@@ -441,7 +499,7 @@ brands.forEach(b => {
   listEl.appendChild(item);
 });
 
-// SELECTION LOGIC
+// --- SELECTION LOGIC ---
 function selectBrand(name) {
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('insight-panel').style.display = 'block';
@@ -457,7 +515,6 @@ function selectBrand(name) {
   document.getElementById('detail-brand').style.color = b.color;
   document.getElementById('detail-coords').textContent = `[ X: ${s.x}, Y: ${s.y} ]`;
 
-  // Clean up the text injection
   let rawPhil = typeof c.philosophy === 'object' ? c.philosophy[name] : c.philosophy;
   document.getElementById('detail-philosophy').textContent = `"${rawPhil}"`;
 
@@ -467,7 +524,7 @@ function selectBrand(name) {
   document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
 }
 
-// TOGGLE LOGIC
+// --- TOGGLE LOGIC ---
 const btnCurr = document.getElementById('btn-current');
 const btnDrift = document.getElementById('btn-drift');
 
@@ -492,4 +549,5 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-st.components.v1.html(html_with_live_data, height=1300, scrolling=True)
+# Height increased to 1600 to accommodate the sticky scroll effect natively
+st.components.v1.html(html_with_live_data, height=1600, scrolling=True)
