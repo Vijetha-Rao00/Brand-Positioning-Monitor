@@ -6,7 +6,6 @@ import os
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
 # --- FULL-SCREEN IFRAME HACK ---
-# This forces the Streamlit iframe to break out of the layout and act as a native full-screen website
 st.markdown("""
     <style>
         .block-container { padding: 0rem !important; max-width: 100% !important; margin: 0 !important; }
@@ -20,7 +19,7 @@ st.markdown("""
             z-index: 9999 !important;
             border: none !important;
         }
-        body { overflow: hidden; } /* Prevents double scrollbars */
+        body { overflow: hidden; } 
     </style>
 """, unsafe_allow_html=True)
 
@@ -145,18 +144,23 @@ body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg);
   color: var(--text-main);
-  min-height: 100vh;
+  /* The body handles the scroll, but the hero stays fixed */
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Hide scrollbar for a cleaner, native app feel */
+::-webkit-scrollbar { display: none; }
 
 .serif { font-family: 'Instrument Serif', serif; font-weight: normal; }
 .mono { font-family: 'JetBrains Mono', monospace; }
 
-/* NAV */
+/* NAV - PINNED TO FRONT */
 nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 24px 40px;
-  position: absolute; top: 0; width: 100%; z-index: 100;
+  position: fixed; top: 0; width: 100%; z-index: 1000;
+  background: linear-gradient(to bottom, rgba(9,10,15,1) 0%, rgba(9,10,15,0) 100%);
 }
 .logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
 .nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--text-muted); }
@@ -167,20 +171,18 @@ nav {
 }
 .nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
 
-/* PERFECTLY CENTERED STICKY HERO */
+/* CINEMATIC FIXED HERO */
 .hero-section {
-  height: 100vh;
+  position: fixed; /* Locked to the back of the screen */
+  top: 0; left: 0; width: 100%; height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.08), transparent 50%), var(--bg);
+  z-index: 1; /* Sits beneath the sliding content */
+  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.06), transparent 50%), var(--bg);
 }
 .hero-content {
   text-align: center;
-  transform: translateY(-20px);
 }
 .eyebrow {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
@@ -190,15 +192,16 @@ nav {
 .hero-content h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
 .hero-content p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-/* SLIDING CONTENT WRAPPER */
+/* CONTENT WRAPPER - SLIDES OVER THE FIXED HERO */
 .content-wrapper {
   position: relative;
   z-index: 10;
+  margin-top: 100vh; /* This pushes the content exactly one screen down */
   background-color: var(--bg);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: 60px;
   padding-bottom: 100px;
-  box-shadow: 0 -20px 50px rgba(9, 10, 15, 0.95);
+  box-shadow: 0 -30px 80px rgba(0, 0, 0, 0.8);
 }
 
 /* TOGGLE PILL */
@@ -222,7 +225,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 .brand-node { cursor: pointer; transition: transform 0.2s ease; transform-origin: center; }
 .brand-node:hover { transform: scale(1.15); }
 
-/* BULLETPROOF TOOLTIP APPENDED TO BODY */
+/* BULLETPROOF TOOLTIP */
 .tooltip {
   position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--border);
   padding: 12px; border-radius: 8px; pointer-events: none; opacity: 0;
@@ -292,7 +295,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 /* MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
   nav { padding: 20px; }
-  .nav-links, .nav-btn { display: none; }
+  .nav-links, .nav-btn { display: none; } 
   .hero-content h1 { font-size: 44px; }
   .hero-content p { font-size: 14px; padding: 0 20px; }
 
@@ -309,8 +312,8 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 
 <nav>
   <div class="logo">
-    <span style="color:var(--text-main);">Positioning Monitor</span>
-    <span style="color:var(--text-muted); font-weight:400; margin-left:8px;">| Luxury Intelligence</span>
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2z"/></svg>
+    Positioning Monitor <span style="font-weight:400; color:var(--text-muted); margin-left:8px;">| Luxury Intelligence</span>
   </div>
   <div class="nav-links">
     <span>Map</span>
@@ -320,8 +323,8 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
   <div class="nav-btn">Export Matrix</div>
 </nav>
 
-<!-- STICKY PARALLAX HERO -->
-<header class="hero-section">
+<!-- CINEMATIC FIXED HERO -->
+<header class="hero-section" id="hero">
   <div class="hero-content" id="hero-content">
     <div class="eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
     <h1 class="serif">Your Linguistic DNA</h1>
@@ -329,7 +332,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
   </div>
 </header>
 
-<!-- CONTENT SLIDES OVER HERO -->
+<!-- CONTENT SLIDES OVER THE FIXED HERO -->
 <div class="content-wrapper">
   <div class="toggle-wrapper">
     <div class="pill-container">
@@ -418,6 +421,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
   </section>
 </div>
 
+<!-- ABSOLUTE POSITIONED TOOLTIP -->
 <div class="tooltip" id="tooltip">
   <div class="tt-title" id="tt-brand">Brand</div>
   <div class="tt-coord" id="tt-coord">0.0, 0.0</div>
@@ -435,12 +439,15 @@ const listEl = document.getElementById('brand-list');
 const tooltip = document.getElementById('tooltip');
 const heroContent = document.getElementById('hero-content');
 
-// --- SCROLL PARALLAX EFFECT ---
-// The hero fades out and moves down as the user scrolls, while the dark content panel slides up
+// --- CINEMATIC SCROLL LOGIC ---
+// As you scroll the page (the content-wrapper moves up), the fixed hero fades into blackness
 window.addEventListener('scroll', () => {
   const scrollY = window.scrollY;
-  heroContent.style.opacity = Math.max(1 - (scrollY / 300), 0);
-  heroContent.style.transform = `translateY(${scrollY * 0.4 - 20}px)`;
+  const vh = window.innerHeight;
+  // Fade out completely by the time scroll hits 60% of viewport height
+  heroContent.style.opacity = Math.max(1 - (scrollY / (vh * 0.6)), 0);
+  // Very subtle parallax push down
+  heroContent.style.transform = `translateY(${scrollY * 0.15}px)`;
 });
 
 // RENDER MAP
@@ -554,4 +561,4 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-st.components.v1.html(html_with_live_data, height=1800, scrolling=True)
+st.components.v1.html(html_with_live_data, height=1600, scrolling=True)
