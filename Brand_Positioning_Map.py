@@ -1,6 +1,3 @@
-Absolutely. I won’t create anything. Paste this as your full Streamlit file:
-
-```python
 import streamlit as st
 import streamlit.components.v1 as components
 import json
