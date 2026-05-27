@@ -2,10 +2,9 @@ import streamlit as st
 import json
 import os
 
-# --- STREAMLIT PAGE CONFIG ---
+# --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
-# --- FULL-SCREEN IFRAME HACK ---
 st.markdown("""
     <style>
         .block-container { padding: 0rem !important; max-width: 100% !important; margin: 0 !important; }
@@ -24,7 +23,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- DATA ROUTING ---
+# --- 2. DATA ROUTING ---
 def get_valid_path(*paths):
     for path in paths:
         if os.path.exists(path):
@@ -79,7 +78,6 @@ for brand, data in live_scores.items():
     x = data.get("x_score", 5.0)
     y = data.get("y_score", 5.0)
 
-    # SVG Math mapped to viewBox="0 0 800 400"
     cx = 50 + (x / 10.0) * 700
     cy = 40 + ((10.0 - y) / 10.0) * 320
 
@@ -118,7 +116,7 @@ for brand, data in live_scores.items():
         "drift": drift_insights.get(brand, "No drift data.")
     }
 
-# --- THE HTML TEMPLATE ---
+# --- 3. THE HTML TEMPLATE ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
@@ -141,7 +139,6 @@ custom_html_template = """
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* The body is 200vh so you can scroll exactly one screen down */
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg);
@@ -189,15 +186,15 @@ nav > * { pointer-events: auto; }
 /* THE SCROLLING DASHBOARD WRAPPER */
 .dashboard-wrapper {
   position: absolute;
-  top: 100vh; /* Sits exactly below the hero */
-  left: 0; width: 100vw; height: 100vh; /* Locks to screen height */
+  top: 100vh; 
+  left: 0; width: 100vw; height: 100vh; 
   background-color: var(--bg);
   border-top: 1px solid rgba(255,255,255,0.05);
   z-index: 10;
   display: flex;
-  padding: 80px 40px 40px 40px; /* Space for nav */
+  padding: 80px 40px 40px 40px; 
   gap: 40px;
-  overflow: hidden; /* No scrolling inside dashboard */
+  overflow: hidden; 
   box-shadow: 0 -30px 80px rgba(0, 0, 0, 0.95);
 }
 
@@ -262,15 +259,17 @@ nav > * { pointer-events: auto; }
 #bpm-svg { width: 100%; height: 100%; max-height: 100%; overflow: visible; }
 .axis-line { stroke: #2a2e38; stroke-width: 1; }
 .axis-label { fill: #4a505e; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
-.brand-node { cursor: pointer; transition: transform 0.2s ease, opacity 0.3s ease; transform-origin: center; }
-.brand-node:hover { transform: scale(1.15); }
+
+/* FIX: PERFECT BRAND HOVER (No scale, soft glow) */
+.brand-node { cursor: pointer; transition: filter 0.2s ease, opacity 0.3s ease; transform-origin: center; }
+.brand-node:hover { filter: brightness(1.3) drop-shadow(0 0 6px rgba(255,255,255,0.3)); }
 
 /* BULLETPROOF TOOLTIP */
 .tooltip {
   position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--border);
   padding: 12px; border-radius: 8px; opacity: 0;
-  transition: opacity 0.2s ease; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  pointer-events: none !important; /* CRITICAL: Prevents flicker */
+  transition: opacity 0.15s ease; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  pointer-events: none !important; /* CRITICAL: Prevents flicker loop */
 }
 .tt-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 .tt-row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px; font-size: 12px; color: var(--text-muted); }
@@ -279,7 +278,7 @@ nav > * { pointer-events: auto; }
 /* RIGHT COLUMN: SLIDING INSIGHT CARD */
 .insight-card {
   position: absolute; right: 40px; top: 80px;
-  width: 360px; height: calc(100vh - 120px);
+  width: 380px; height: calc(100vh - 120px);
   background: rgba(19, 21, 26, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border); border-radius: 16px; padding: 30px;
   transform: translateX(120%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -298,7 +297,7 @@ nav > * { pointer-events: auto; }
 .insight-brand { font-size: 42px; line-height: 1; margin-bottom: 4px; margin-top:0; }
 .insight-coords { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); margin-bottom: 24px; }
 .info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; font-weight: 600; }
-.info-quote { font-size: 18px; line-height: 1.5; color: var(--text-muted); border-left: 2px solid var(--border); padding-left: 16px; font-style: italic; }
+.info-quote { font-size: 17px; line-height: 1.5; color: var(--text-muted); border-left: 2px solid var(--border); padding-left: 16px; font-style: italic; }
 .code-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6; color: var(--text-muted); }
 .code-box span { color: var(--accent); }
 .info-text { font-size: 14px; line-height: 1.6; color: var(--text-main); }
@@ -345,14 +344,14 @@ nav > * { pointer-events: auto; }
   </div>
 </header>
 
-<!-- DASHBOARD (Locks to exactly 100vh below hero) -->
+<!-- DASHBOARD -->
 <div class="dashboard-wrapper">
 
   <!-- LEFT COLUMN -->
   <div class="left-col">
     <div class="custom-dropdown">
       <div class="dd-label">Target Entity</div>
-      <div class="dd-header" id="dd-header">Select a Brand... <span>▼</span></div>
+      <div class="dd-header" id="dd-header">Select a Brand... <span style="color:var(--text-muted)">▼</span></div>
       <div class="dd-list" id="dd-list"></div>
     </div>
 
@@ -458,7 +457,6 @@ const insightCard = document.getElementById('insight-card');
 window.addEventListener('scroll', () => {
   const scrollY = window.scrollY;
   const vh = window.innerHeight;
-  // Fade text to 0 as user scrolls down the 100vh
   heroContent.style.opacity = Math.max(1 - (scrollY / (vh * 0.6)), 0);
   heroContent.style.transform = `translateY(${scrollY * 0.2}px)`;
 });
@@ -469,14 +467,17 @@ brands.forEach(b => {
   g.setAttribute("class", "brand-node");
   g.setAttribute("data-name", b.name);
 
+  // FIX: Added a large transparent hit-area circle so you can click anywhere near the dot/text
   if(b.isVaro) {
     g.innerHTML = `
+      <circle cx="${b.cx}" cy="${b.cy}" r="25" fill="transparent"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="14" fill="rgba(0, 229, 153, 0.15)" />
       <circle cx="${b.cx}" cy="${b.cy}" r="7" fill="${b.color}" />
       <text x="${b.cx}" y="${b.cy - 18}" fill="${b.color}" font-family="JetBrains Mono" font-size="10" text-anchor="middle">VARŌ</text>
     `;
   } else {
     g.innerHTML = `
+      <circle cx="${b.cx}" cy="${b.cy}" r="25" fill="transparent"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="5" fill="${b.color}" />
       <text x="${b.cx}" y="${b.cy - 12}" fill="${b.color}" font-family="Inter" font-size="11" text-anchor="middle" opacity="0.8">${b.name}</text>
     `;
@@ -489,7 +490,7 @@ brands.forEach(b => {
     `;
   }
 
-  // BULLETPROOF HOVER: e.pageX/pageY with offset guarantees cursor never touches tooltip
+  // BULLETPROOF HOVER FIX
   g.addEventListener('mouseenter', (e) => {
     document.getElementById('tt-brand').textContent = b.name;
     document.getElementById('tt-x').textContent = scores[b.name].x;
@@ -506,8 +507,8 @@ brands.forEach(b => {
 });
 
 function moveTT(e) {
-  tooltip.style.left = (e.pageX + 20) + 'px';
-  tooltip.style.top = (e.pageY + 20) + 'px';
+  tooltip.style.left = (e.pageX + 15) + 'px';
+  tooltip.style.top = (e.pageY + 15) + 'px';
 }
 
 // --- RENDER DROPDOWN ---
@@ -531,16 +532,12 @@ ddHeader.onclick = (e) => {
     e.stopPropagation();
     ddList.classList.toggle('show');
 };
-document.body.onclick = () => {
-    ddList.classList.remove('show');
-};
 
 // --- SELECTION LOGIC ---
 function selectBrand(name) {
-  // Update Dropdown Header
   ddHeader.innerHTML = `${name} <span style="color:var(--text-muted)">▼</span>`;
 
-  // Dim Unselected Nodes
+  // Deep dim unselected nodes (keeps selected brand standing still but highlighted)
   document.querySelectorAll('.brand-node').forEach(node => {
     node.style.opacity = node.getAttribute('data-name') === name ? '1' : '0.15';
   });
@@ -549,7 +546,6 @@ function selectBrand(name) {
   const c = commentary[name];
   const s = scores[name];
 
-  // Populate Insights Card
   document.getElementById('detail-brand').textContent = b.name;
   document.getElementById('detail-brand').style.color = b.color;
   document.getElementById('detail-coords').textContent = `[ X: ${s.x}, Y: ${s.y} ]`;
@@ -571,7 +567,7 @@ function selectBrand(name) {
   if(targetQ) targetQ.classList.add('active-glow');
 }
 
-// Close Right Panel
+// --- GLOBAL DISMISS LOGIC ---
 function closeInsight() {
     insightCard.classList.remove('open');
     document.querySelectorAll('.brand-node').forEach(node => { node.style.opacity = '1'; });
@@ -579,19 +575,34 @@ function closeInsight() {
     ddHeader.innerHTML = `Select a Brand... <span style="color:var(--text-muted)">▼</span>`;
 }
 
+// Click anywhere to dismiss, unless clicking inside the card, dropdown, or toggle
+document.addEventListener('click', (e) => {
+    if (
+        e.target.closest('.brand-node') || 
+        e.target.closest('.custom-dropdown') || 
+        e.target.closest('.insight-card') || 
+        e.target.closest('.toggle-panel') ||
+        e.target.closest('.bpm-nav')
+    ) {
+        return;
+    }
+
+    // Close dropdown if open
+    ddList.classList.remove('show');
+
+    // Close insight card
+    if (insightCard.classList.contains('open')) {
+        closeInsight();
+    }
+});
+
 // --- DRIFT TOGGLE LOGIC ---
 const btnDrift = document.getElementById('btn-drift');
-btnDrift.onclick = function() {
+btnDrift.onclick = function(e) {
+  e.stopPropagation();
   this.classList.toggle('active');
   svgDrift.style.display = this.classList.contains('active') ? 'block' : 'none';
 };
-
-// Reset map on background click
-document.getElementById('bpm-svg').addEventListener('click', (e) => {
-  if (e.target.tagName === 'rect' || e.target.tagName === 'line' || e.target.tagName === 'text') {
-    closeInsight();
-  }
-});
 </script>
 </body>
 </html>
@@ -605,5 +616,4 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-# Render isolated full-screen iframe
 st.components.v1.html(html_with_live_data, height=2000, scrolling=True)
