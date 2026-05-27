@@ -5,16 +5,27 @@ import os
 # --- 1. STREAMLIT PAGE CONFIG ---
 st.set_page_config(page_title="Brand Positioning Monitor", layout="wide", initial_sidebar_state="collapsed")
 
+# --- FULL-SCREEN IFRAME HACK ---
+# This forces the Streamlit iframe to break out of the layout and act as a native full-screen website
 st.markdown("""
     <style>
-        .block-container { padding: 0rem; max-width: 100%; }
-        header, #MainMenu, footer {visibility: hidden;}
-        iframe { border: none; background: transparent; }
+        .block-container { padding: 0rem !important; max-width: 100% !important; margin: 0 !important; }
+        header, footer { display: none !important; }
+        iframe {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border: none !important;
+        }
+        body { overflow: hidden; } /* Prevents double scrollbars */
     </style>
 """, unsafe_allow_html=True)
 
 
-# --- 2. DATA ROUTING & INJECTION ---
+# --- 2. DATA ROUTING ---
 def get_valid_path(*paths):
     for path in paths:
         if os.path.exists(path):
@@ -42,6 +53,7 @@ if os.path.exists(hist_path):
 else:
     hist_scores = {}
 
+# PageCoder Palette
 color_map = {
     "Chanel": "#ffffff", "Hermès": "#fca5a5", "YSL": "#fcd34d", "Maison Margiela": "#c4b5fd",
     "Jean Paul Gaultier": "#93c5fd", "Viktor & Rolf": "#f9a8d4", "Mancera": "#fdba74",
@@ -96,9 +108,6 @@ for brand, data in live_scores.items():
         "isVaro": (brand == "VARŌ" or brand == "VARO")
     })
 
-    x_label = "Vulnerability" if x >= 5 else "Dominance"
-    y_label = "Private Truth" if y >= 5 else "Collective Myth"
-
     js_scores[brand] = {"x": round(x, 2), "y": round(y, 2)}
     js_commentary[brand] = {
         "philosophy": kb_path if not os.path.exists(kb_path) else json.load(open(kb_path, "r", encoding="utf-8")).get(
@@ -109,7 +118,7 @@ for brand, data in live_scores.items():
         "drift": drift_insights.get(brand, "No drift data.")
     }
 
-# --- 3. THE UPDATED HTML TEMPLATE (ANIMATED & RESPONSIVE) ---
+# --- 3. THE HTML TEMPLATE ---
 custom_html_template = """
 <!DOCTYPE html>
 <html lang="en">
@@ -158,40 +167,42 @@ nav {
 }
 .nav-btn:hover { background: rgba(0, 229, 153, 0.15); }
 
-/* PARALLAX HERO */
-.hero-container {
-  height: 85vh; /* Provides scrolling space */
+/* PERFECTLY CENTERED STICKY HERO */
+.hero-section {
+  height: 100vh;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   position: sticky;
   top: 0;
   z-index: 1;
+  background: radial-gradient(circle at 50% 40%, rgba(0, 229, 153, 0.08), transparent 50%), var(--bg);
+}
+.hero-content {
   text-align: center;
-  padding: 0 20px;
+  transform: translateY(-20px);
 }
 .eyebrow {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   color: var(--text-muted); letter-spacing: 0.3em; text-transform: uppercase;
   margin-bottom: 24px;
 }
-.hero-container h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
-.hero-container p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+.hero-content h1 { font-size: 72px; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
+.hero-content p { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-/* CONTENT SLIDE-UP WRAPPER */
+/* SLIDING CONTENT WRAPPER */
 .content-wrapper {
   position: relative;
   z-index: 10;
   background-color: var(--bg);
-  box-shadow: 0 -30px 60px rgba(9, 10, 15, 0.95);
   border-top: 1px solid var(--border);
   padding-top: 60px;
   padding-bottom: 100px;
+  box-shadow: 0 -20px 50px rgba(9, 10, 15, 0.95);
 }
 
 /* TOGGLE PILL */
-.toggle-wrapper { display: flex; justify-content: center; margin-bottom: 40px; }
+.toggle-wrapper { display: flex; justify-content: center; margin-bottom: 60px; }
 .pill-container {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: 100px; display: flex; padding: 4px; gap: 4px;
@@ -211,7 +222,7 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 .brand-node { cursor: pointer; transition: transform 0.2s ease; transform-origin: center; }
 .brand-node:hover { transform: scale(1.15); }
 
-/* BULLETPROOF TOOLTIP */
+/* BULLETPROOF TOOLTIP APPENDED TO BODY */
 .tooltip {
   position: absolute; background: rgba(13, 15, 20, 0.95); border: 1px solid var(--border);
   padding: 12px; border-radius: 8px; pointer-events: none; opacity: 0;
@@ -281,17 +292,16 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 /* MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
   nav { padding: 20px; }
-  .nav-links, .nav-btn { display: none; } /* Simplify nav on mobile */
-  .hero-container h1 { font-size: 48px; }
-  .hero-container p { font-size: 14px; }
+  .nav-links, .nav-btn { display: none; }
+  .hero-content h1 { font-size: 44px; }
+  .hero-content p { font-size: 14px; padding: 0 20px; }
 
   .data-grid { grid-template-columns: 1fr; gap: 40px; margin-top: 40px; }
   .b-grid { grid-template-columns: 1fr; gap: 24px; }
   .insight-brand { font-size: 36px; }
   .info-quote { font-size: 16px; }
-
-  /* Adjust SVG text scaling for mobile */
-  .axis-label { font-size: 14px; } 
+  .axis-label { font-size: 13px; } 
+  .b-full { padding: 20px; }
 }
 </style>
 </head>
@@ -311,13 +321,15 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
 </nav>
 
 <!-- STICKY PARALLAX HERO -->
-<header class="hero-container" id="hero">
-  <div class="eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
-  <h1 class="serif">Your Linguistic DNA</h1>
-  <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
+<header class="hero-section">
+  <div class="hero-content" id="hero-content">
+    <div class="eyebrow">A G E N T &nbsp; 0 4 &nbsp; A U D I T</div>
+    <h1 class="serif">Your Linguistic DNA</h1>
+    <p>Every time a brand communicates, it leaves a unique semantic trace.<br>This is what the luxury landscape fingerprint looks like.</p>
+  </div>
 </header>
 
-<!-- CONTENT WRAPPER THAT SLIDES OVER HERO -->
+<!-- CONTENT SLIDES OVER HERO -->
 <div class="content-wrapper">
   <div class="toggle-wrapper">
     <div class="pill-container">
@@ -406,7 +418,6 @@ svg { width: 100%; height: auto; display: block; overflow: visible; }
   </section>
 </div>
 
-<!-- ABSOLUTE POSITIONED TOOLTIP APPENDED TO BODY -->
 <div class="tooltip" id="tooltip">
   <div class="tt-title" id="tt-brand">Brand</div>
   <div class="tt-coord" id="tt-coord">0.0, 0.0</div>
@@ -422,27 +433,26 @@ const svgBrands = document.getElementById('brands-layer');
 const svgDrift = document.getElementById('drift-layer');
 const listEl = document.getElementById('brand-list');
 const tooltip = document.getElementById('tooltip');
+const heroContent = document.getElementById('hero-content');
 
-// --- SCROLL ANIMATION (PARALLAX HERO) ---
+// --- SCROLL PARALLAX EFFECT ---
+// The hero fades out and moves down as the user scrolls, while the dark content panel slides up
 window.addEventListener('scroll', () => {
   const scrollY = window.scrollY;
-  const hero = document.getElementById('hero');
-  // Fade out text gradually as you scroll down 300px
-  hero.style.opacity = Math.max(1 - (scrollY / 350), 0);
-  // Optional: subtle downward push for parallax feel
-  hero.style.transform = `translateY(${scrollY * 0.3}px)`;
+  heroContent.style.opacity = Math.max(1 - (scrollY / 300), 0);
+  heroContent.style.transform = `translateY(${scrollY * 0.4 - 20}px)`;
 });
 
-// --- RENDER MAP ---
+// RENDER MAP
 brands.forEach(b => {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "brand-node");
 
   if(b.isVaro) {
     g.innerHTML = `
-      <circle cx="${b.cx}" cy="${b.cy}" r="14" fill="rgba(0, 229, 153, 0.15)" />
+      <circle cx="${b.cx}" cy="${b.cy}" r="12" fill="rgba(0, 229, 153, 0.2)" />
       <circle cx="${b.cx}" cy="${b.cy}" r="6" fill="${b.color}" />
-      <text x="${b.cx}" y="${b.cy - 18}" fill="${b.color}" font-family="JetBrains Mono" font-size="10" text-anchor="middle">VARŌ</text>
+      <text x="${b.cx}" y="${b.cy - 16}" fill="${b.color}" font-family="JetBrains Mono" font-size="10" text-anchor="middle">VARŌ</text>
     `;
   } else {
     g.innerHTML = `
@@ -453,12 +463,12 @@ brands.forEach(b => {
 
   if (b.x21 !== null) {
     svgDrift.innerHTML += `
-      <line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="${b.color}" stroke-width="1.5" stroke-dasharray="2,3" opacity="0.4" />
-      <circle cx="${b.x21}" cy="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.5" />
+      <line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="${b.color}" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
+      <circle cx="${b.x21}" cy="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.4" />
     `;
   }
 
-  // BULLETPROOF HOVER FIX (using pageX/pageY instead of container math)
+  // BULLETPROOF HOVER: Uses pageX/pageY so scrolling doesn't break tooltip alignment
   g.addEventListener('mouseenter', (e) => {
     document.getElementById('tt-brand').textContent = b.name;
     document.getElementById('tt-coord').textContent = `[ ${scores[b.name].x}, ${scores[b.name].y} ]`;
@@ -467,23 +477,18 @@ brands.forEach(b => {
   });
 
   g.addEventListener('mousemove', moveTT);
-
-  g.addEventListener('mouseleave', () => {
-    tooltip.style.opacity = 0;
-  });
-
+  g.addEventListener('mouseleave', () => { tooltip.style.opacity = 0; });
   g.addEventListener('click', () => selectBrand(b.name));
 
   svgBrands.appendChild(g);
 });
 
 function moveTT(e) {
-  // Uses absolute page coordinates so it never breaks when scrolled
   tooltip.style.left = (e.pageX + 15) + 'px';
   tooltip.style.top = (e.pageY + 15) + 'px';
 }
 
-// --- RENDER LIST ---
+// RENDER LIST
 brands.forEach(b => {
   const item = document.createElement('div');
   item.className = 'list-item';
@@ -499,7 +504,7 @@ brands.forEach(b => {
   listEl.appendChild(item);
 });
 
-// --- SELECTION LOGIC ---
+// SELECTION LOGIC
 function selectBrand(name) {
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('insight-panel').style.display = 'block';
@@ -524,7 +529,7 @@ function selectBrand(name) {
   document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
 }
 
-// --- TOGGLE LOGIC ---
+// TOGGLE LOGIC
 const btnCurr = document.getElementById('btn-current');
 const btnDrift = document.getElementById('btn-drift');
 
@@ -549,5 +554,4 @@ html_with_live_data = custom_html_template.replace(
     "__DYNAMIC_COMMENTARY_PLACEHOLDER__", json.dumps(js_commentary)
 )
 
-# Height increased to 1600 to accommodate the sticky scroll effect natively
-st.components.v1.html(html_with_live_data, height=1600, scrolling=True)
+st.components.v1.html(html_with_live_data, height=1800, scrolling=True)
