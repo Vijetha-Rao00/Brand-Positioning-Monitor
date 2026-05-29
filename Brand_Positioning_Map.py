@@ -456,14 +456,23 @@ brands.forEach(b => {
   g.setAttribute("class", "brand-node");
   g.setAttribute("data-name", b.name);
 
-  // Position offset adjustments to prevent label collisions (YSL vs Chanel)
+  // Default positioning settings
   let labelX = b.cx;
   let labelY = b.cy - 12;
+  let textAnchor = "middle";
 
+  // Prevent collisions between Chanel, YSL, and Jean Paul Gaultier
   if (b.name === "Chanel") {
-    labelY = b.cy - 16; // Lift Chanel slightly higher
+    labelX = b.cx + 10;
+    labelY = b.cy + 4;
+    textAnchor = "start";
   } else if (b.name === "YSL") {
-    labelY = b.cy + 18; // Drop YSL below the marker dot
+    labelX = b.cx - 10;
+    labelY = b.cy + 4;
+    textAnchor = "end";
+  } else if (b.name === "Jean Paul Gaultier") {
+    labelY = b.cy + 18; // Place Gaultier safely below its dot
+    textAnchor = "middle";
   }
 
   // Large transparent hit-area circle for responsive click tracking
@@ -478,14 +487,14 @@ brands.forEach(b => {
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="25" fill="transparent"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="5" fill="${b.color}" />
-      <text x="${labelX}" y="${labelY}" fill="${b.color}" font-family="Inter" font-size="11" text-anchor="middle" opacity="0.8">${b.name}</text>
+      <text x="${labelX}" y="${labelY}" fill="${b.color}" font-family="Inter" font-size="11" text-anchor="${textAnchor}" opacity="0.8">${b.name}</text>
     `;
   }
 
   if (b.x21 !== null) {
     svgDrift.innerHTML += `
       <line x1="${b.x21}" y1="${b.y21}" x2="${b.cx}" y2="${b.cy}" stroke="${b.color}" stroke-width="1.5" stroke-dasharray="2,3" opacity="0.4" />
-      <circle cx="${b.x21}" cy="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.5" />
+      <circle cx="${b.x21}" y1="${b.y21}" r="3" fill="none" stroke="${b.color}" opacity="0.5" />
     `;
   }
 
