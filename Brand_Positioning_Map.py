@@ -164,7 +164,6 @@ nav {
 }
 nav > * { pointer-events: auto; }
 .logo { display: flex; align-items: center; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
-.nav-links { display: flex; gap: 32px; font-size: 13px; color: var(--text-muted); }
 .nav-btn {
   border: 1px solid var(--accent); color: var(--accent);
   padding: 8px 16px; border-radius: 4px; font-size: 13px; cursor: pointer;
@@ -315,7 +314,7 @@ nav > * { pointer-events: auto; }
       transform: translateY(110%); border-radius: 24px 24px 0 0; z-index: 9999;
   }
   .insight-card.open { transform: translateY(0); }
-  .nav-links, .nav-btn { display: none; }
+  .nav-btn { display: none; }
   .hero-section h1 { font-size: 44px; }
 }
 </style>
@@ -327,10 +326,6 @@ nav > * { pointer-events: auto; }
     <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-main); margin-right:8px;"><path d="M12 2L2 22h20L12 2z"/></svg>
     <span style="color:var(--text-main);">Positioning Monitor</span>
     <span style="color:var(--text-muted); font-weight:400; margin-left:8px;">| Luxury Intelligence</span>
-  </div>
-  <div class="nav-links">
-    <span>Dashboard</span>
-    <span>Methodology</span>
   </div>
   <div class="nav-btn">Export Matrix</div>
 </nav>
@@ -397,7 +392,7 @@ nav > * { pointer-events: auto; }
     </svg>
   </div>
 
-  <!-- RIGHT COLUMN: HIDDEN INSIGHTS CARD -->
+  <!-- RIGHT COLUMN: INSIGHTS CARD -->
   <div class="insight-card" id="insight-card">
     <div class="close-btn" onclick="closeInsight()">✕</div>
 
@@ -416,12 +411,6 @@ nav > * { pointer-events: auto; }
       <div class="code-box">
         <div style="color:var(--text-main); margin-bottom:8px;">> Auditing Agent 3 baseline...</div>
         <div id="detail-audit">Log.</div>
-      </div>
-      <div class="code-box">
-        <span>[X_AXIS]</span> <span id="detail-rx" style="color:var(--text-muted)">Reasoning</span>
-      </div>
-      <div class="code-box">
-        <span>[Y_AXIS]</span> <span id="detail-ry" style="color:var(--text-muted)">Reasoning</span>
       </div>
     </div>
 
@@ -467,7 +456,17 @@ brands.forEach(b => {
   g.setAttribute("class", "brand-node");
   g.setAttribute("data-name", b.name);
 
-  // FIX: Added a large transparent hit-area circle so you can click anywhere near the dot/text
+  // Position offset adjustments to prevent label collisions (YSL vs Chanel)
+  let labelX = b.cx;
+  let labelY = b.cy - 12;
+
+  if (b.name === "Chanel") {
+    labelY = b.cy - 16; // Lift Chanel slightly higher
+  } else if (b.name === "YSL") {
+    labelY = b.cy + 18; // Drop YSL below the marker dot
+  }
+
+  // Large transparent hit-area circle for responsive click tracking
   if(b.isVaro) {
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="25" fill="transparent"/>
@@ -479,7 +478,7 @@ brands.forEach(b => {
     g.innerHTML = `
       <circle cx="${b.cx}" cy="${b.cy}" r="25" fill="transparent"/>
       <circle cx="${b.cx}" cy="${b.cy}" r="5" fill="${b.color}" />
-      <text x="${b.cx}" y="${b.cy - 12}" fill="${b.color}" font-family="Inter" font-size="11" text-anchor="middle" opacity="0.8">${b.name}</text>
+      <text x="${labelX}" y="${labelY}" fill="${b.color}" font-family="Inter" font-size="11" text-anchor="middle" opacity="0.8">${b.name}</text>
     `;
   }
 
@@ -490,7 +489,7 @@ brands.forEach(b => {
     `;
   }
 
-  // BULLETPROOF HOVER FIX
+  // HOVER HANDLERS
   g.addEventListener('mouseenter', (e) => {
     document.getElementById('tt-brand').textContent = b.name;
     document.getElementById('tt-x').textContent = scores[b.name].x;
@@ -537,7 +536,7 @@ ddHeader.onclick = (e) => {
 function selectBrand(name) {
   ddHeader.innerHTML = `${name} <span style="color:var(--text-muted)">▼</span>`;
 
-  // Deep dim unselected nodes (keeps selected brand standing still but highlighted)
+  // Dim unselected nodes
   document.querySelectorAll('.brand-node').forEach(node => {
     node.style.opacity = node.getAttribute('data-name') === name ? '1' : '0.15';
   });
@@ -553,8 +552,6 @@ function selectBrand(name) {
   let rawPhil = typeof c.philosophy === 'object' ? c.philosophy[name] : c.philosophy;
   document.getElementById('detail-philosophy').textContent = `"${rawPhil}"`;
   document.getElementById('detail-audit').textContent = c.quote;
-  document.getElementById('detail-rx').textContent = c.rx;
-  document.getElementById('detail-ry').textContent = c.ry;
   document.getElementById('detail-drift').innerHTML = c.drift.replace("Insight:", "<br><br><span style='color:var(--accent); font-family:JetBrains Mono, monospace; font-size:11px; text-transform:uppercase;'>System Insight:</span>");
 
   // Slide In Right Panel
@@ -575,14 +572,13 @@ function closeInsight() {
     ddHeader.innerHTML = `Select a Brand... <span style="color:var(--text-muted)">▼</span>`;
 }
 
-// Click anywhere to dismiss, unless clicking inside the card, dropdown, or toggle
+// Click anywhere to dismiss, unless clicking inside target components
 document.addEventListener('click', (e) => {
     if (
         e.target.closest('.brand-node') || 
         e.target.closest('.custom-dropdown') || 
         e.target.closest('.insight-card') || 
-        e.target.closest('.toggle-panel') ||
-        e.target.closest('.bpm-nav')
+        e.target.closest('.toggle-panel')
     ) {
         return;
     }
